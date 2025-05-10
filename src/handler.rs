@@ -15,6 +15,8 @@ pub struct Handler {
 
     pub uid: String,
     pub name: String,
+    pub author: String,
+    pub version: String,
     pub info: String,
 
     pub symlink_dir: bool,
@@ -54,6 +56,14 @@ impl Handler {
                 .unwrap_or_default()
                 .to_string(),
             info: json["handler.info"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            author: json["handler.author"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            version: json["handler.version"]
                 .as_str()
                 .unwrap_or_default()
                 .to_string(),
