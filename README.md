@@ -6,10 +6,10 @@ A split-screen game launcher for Linux/SteamOS
 
 ---
 
-<div style="display: flex; justify-content: center;">
-    <img src=".github/assets/launcher.png" style="max-width: 49%; margin-right: 1%;">
-    <img src=".github/assets/gameplay1.png" style="max-width: 49%;">
-</div>
+<p align="center">
+    <img src=".github/assets/launcher.png" width="49%" />
+    <img src=".github/assets/gameplay1.png" width="49%" />
+</p>
 
 > [!IMPORTANT]
 > This is the first serious software project I've ever done. It surely contains many violations of software best practices and security flaws; use at your own discretion! If you are experienced in software I would love to know what aspects of the codebase could be improved and how I can do better.
@@ -27,7 +27,7 @@ A split-screen game launcher for Linux/SteamOS
 
 ## Installing & Usage
 
-Download the latest release [here](https://github.com/wunnr/partydeck-rs/releases). Download game handlers [here](https://drive.proton.me/urls/D9HBKM18YR#zG8XC8yVy9WL). Extract the zip into a folder.
+Download the latest release [here](https://github.com/wunnr/partydeck-rs/releases) and extract it into a folder. Download game handlers [here](https://drive.proton.me/urls/D9HBKM18YR#zG8XC8yVy9WL).
 
 ### SteamOS
 
