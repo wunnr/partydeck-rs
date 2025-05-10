@@ -252,7 +252,7 @@ pub fn install_handler_from_file() -> Result<(), Box<dyn Error>> {
     let handler_json: Value = serde_json::from_reader(BufReader::new(handler_file))?;
 
     let uid = handler_json
-        .get("uid")
+        .get("handler.uid")
         .and_then(|v| v.as_str())
         .ok_or("No uid field found in handler.json")?;
 
