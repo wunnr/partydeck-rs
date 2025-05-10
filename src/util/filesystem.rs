@@ -1,0 +1,95 @@
+use crate::paths::*;
+use rfd::FileDialog;
+use serde_json::Value;
+use std::error::Error;
+use std::fs::File;
+use std::io::BufReader;
+use std::path::PathBuf;
+
+pub fn copy_dir_recursive(
+    src: &PathBuf,
+    dest: &PathBuf,
+    symlink_instead: bool,
+    overwrite_dest: bool,
+) -> Result<(), Box<dyn Error>> {
+    println!(
+        "copy_dir_recursive - src: {}, dest: {}",
+        src.display(),
+        dest.display()
+    );
+
+    let walk_path = walkdir::WalkDir::new(src).min_depth(1).follow_links(false);
+
+    for entry in walk_path {
+        let entry = entry?;
+        let rel_path = entry.path().strip_prefix(src)?;
+        let new_path = dest.join(rel_path);
+        // println!(
+        //     "entry: {}\n rel_path: {}\n new_path: {}\n",
+        //     entry.path().display(),
+        //     rel_path.display(),
+        //     new_path.display()
+        // );
+
+        if entry.file_type().is_dir() {
+            std::fs::create_dir_all(&new_path)?;
+        } else if entry.file_type().is_symlink() {
+            let symlink_src = std::fs::read_link(entry.path())?;
+            std::os::unix::fs::symlink(symlink_src, new_path)?;
+        } else {
+            if let Some(parent) = new_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            if new_path.exists() && overwrite_dest {
+                std::fs::remove_file(&new_path)?;
+            }
+            if symlink_instead {
+                std::os::unix::fs::symlink(entry.path(), new_path)?;
+            } else {
+                std::fs::copy(entry.path(), new_path)?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub fn get_rootpath(uid: &str) -> Result<String, Box<dyn Error>> {
+    // Try to load from paths.json first
+    if let Ok(file) = File::open(PATH_PARTY.join("paths.json")) {
+        let reader = BufReader::new(file);
+        if let Ok(json) = serde_json::from_reader::<_, Value>(reader) {
+            if let Some(path) = json.get(uid) {
+                if let Some(path_str) = path.as_str() {
+                    return Ok(path_str.to_string());
+                }
+            }
+        }
+    }
+
+    // If we didn't get a path from the file, ask user for folder
+    let path = FileDialog::new()
+        .set_title(format!("Locate folder for {uid}"))
+        .set_directory(&*PATH_HOME)
+        .pick_folder()
+        .ok_or_else(|| "No folder selected")?;
+    let result = path.display().to_string();
+
+    // Create/update the json file
+    let mut paths = if let Ok(file) = File::open(PATH_PARTY.join("paths.json")) {
+        serde_json::from_reader(BufReader::new(file))
+            .unwrap_or(Value::Object(serde_json::Map::new()))
+    } else {
+        Value::Object(serde_json::Map::new())
+    };
+
+    if let Value::Object(ref mut map) = paths {
+        map.insert(uid.to_string(), Value::String(result.clone()));
+        std::fs::write(
+            PATH_PARTY.join("paths.json"),
+            serde_json::to_string_pretty(&paths)?,
+        )?;
+    }
+
+    Ok(result)
+}
