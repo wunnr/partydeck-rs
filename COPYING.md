@@ -1,4 +1,5 @@
 ## UMU Launcher
+```
 
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
@@ -674,8 +675,10 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <https://www.gnu.org/licenses/why-not-lgpl.html>.
+```
 
 ## Goldberg Steam Emu
+```
 
                       GNU LESSER GENERAL PUBLIC LICENSE
                           Version 3, 29 June 2007
@@ -842,3 +845,4 @@ Public License instead of this License.  But first, please read
     apply, that proxy's public statement of acceptance of any version is
     permanent authorization for you to choose that version for the
     Library.
+```
