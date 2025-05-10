@@ -230,7 +230,7 @@ pub fn install_handler_from_file() -> Result<(), Box<dyn Error>> {
     let file = FileDialog::new()
         .set_title("Select PartyDeck Handler File")
         .set_directory(&*PATH_HOME)
-        .add_filter("PartyDeck Handler", &["pdh"])
+        .add_filter("PartyDeck Handler (.pdh)", &["pdh"])
         .pick_file()
         .ok_or_else(|| "No file picked");
     let dir_handlers = PATH_PARTY.join("handlers");
