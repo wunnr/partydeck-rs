@@ -97,7 +97,9 @@ pub fn launch_from_handler(
         let (gsc_width, gsc_height) = get_instance_resolution(players.len(), i, width, height);
 
         cmd.push_str(&format!("gamescope -W {gsc_width} -H {gsc_height} -- "));
-        cmd.push_str(&format!("bwrap --dev-bind / / --tmpfs /tmp "));
+        cmd.push_str(&format!(
+            "bwrap --die-with-parent --dev-bind / / --tmpfs /tmp "
+        ));
 
         // Bind player profile directories to the game's directories
         let mut binds = String::new();
