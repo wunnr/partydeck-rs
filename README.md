@@ -6,7 +6,10 @@ A split-screen game launcher for Linux/SteamOS
 
 ---
 
-<img src=".github/assets/launcher.png" align="center">
+<div style="display: flex; justify-content: center;">
+    <img src=".github/assets/launcher.png" style="max-width: 49%; margin-right: 1%;">
+    <img src=".github/assets/gameplay1.png" style="max-width: 49%;">
+</div>
 
 > [!IMPORTANT]
 > This is the first serious software project I've ever done. It surely contains many violations of software best practices and security flaws; use at your own discretion! If you are experienced in software I would love to know what aspects of the codebase could be improved and how I can do better.
@@ -20,25 +23,27 @@ A split-screen game launcher for Linux/SteamOS
 - Works with most game controllers without any additional setup, drivers, or third-party software
 - Uses sandboxing software to mask out controllers so that each game instance only detects the controller assigned to it, preventing input interference
 - Profile support allows each player to have their own persistent save data, settings, and stats for games
+- Works out of the box on SteamOS
 
 ## Installing & Usage
 
 Download the latest release [here](https://github.com/wunnr/partydeck-rs/releases). Download game handlers [here](https://drive.proton.me/urls/D9HBKM18YR#zG8XC8yVy9WL). Extract the zip into a folder.
 
-This project uses KWin (included with KDE Plasma), Gamescope, and Bubblewrap; SteamOS already includes these, but if you're on a desktop Linux distro you may need to install these yourself. On Arch, these packages are `kwin`, `gamescope`, and `bubblewrap`.
+### SteamOS
 
-If you're already running a KDE Plasma session, you can simply run the executable `partydeck-rs` to get started. If you're on Steam Deck and want to access PartyDeck from Gaming Mode, simply add `PartyDeckKWinLaunch.sh` as a non-Steam game by right-clicking that file and selecting "Add to Steam". This is a simple script that launches a KWin session from within Gaming Mode, then runs PartyDeck inside of that session.
+SteamOS includes all of PartyDeck's dependencies, but you will need to be on SteamOS 3.7.0 or above for the splitscreen script to work. For now, this is on the Preview update channel on SteamOS.
 
-**IMPORTANT:** Steam Input interferes with PartyDeck's controller detection, causing issues like duplicate controllers showing up! If PartyDeck is added as a non-Steam game, go to the properties in Steam and make sure that Steam Input is disabled. If Steam is open at all, make sure that your controllers aren't using a Desktop layout.
+If you're in desktop mode, simply run `partydeck-rs`. To use PartyDeck in Gaming Mode, add the script `PartyDeckKWinLaunch.sh` as a non-Steam game by right-clicking that file and selecting "Add to Steam". This is a simple script that launches a KWin session from within Gaming Mode, then runs PartyDeck inside of that session. Then, go into the properties of the non-Steam game and disable Steam Input.
 
-Any controller that SDL supports is theoretically supported: Specifically, Xbox/PlayStation/Switch controllers have all been tested with PartyDeck. Some native Linux games use older versions of SDL that have incorrect mappings with newer controllers, so the launcher has an option to force a game to use the Steam Runtime's version of SDL, which usually fixes this.
+### Desktop Linux
+
+You'll need to install KDE Plasma, Gamescope, and Bubblewrap using your distro's package manager. Then, while in a KDE Plasma session, run `partydeck-rs` to get started. If you're running Steam, make sure none of the controllers are using a Steam Input desktop layout, as Steam Input causes issues such as duplicate controllers being detected.
+
+### Getting Started
 
 On first launch, the app will automatically download UMU Launcher and Goldberg Steam Emu. This may take a while depending on your download speed, but it only needs to be done once.
 
-> [!NOTE]
-> **SteamOS Users:** This app requires KDE Plasma 6 for the KWin split-screen. The current stable version of SteamOS still uses Plasma 5, but for now you can update to the Preview channel in the system settings to get Plasma 6.
-
-Note that you'll also need a Handler to actually run a game; These will be uploaded to a separate repository, and eventually the project will include a program that helps you generate your own Handler.
+Once in the main menu, click the + button to add a handler. Create profiles if you want to store save data, and have a look through the settings menu.
 
 ## Building
 
