@@ -70,14 +70,14 @@ pub fn launch_from_handler(
         },
     };
 
-    if PathBuf::from(gamedir.clone()).join(exec).exists() {
+    if !PathBuf::from(gamedir.clone()).join(exec).exists() {
         return Err(format!("Executable ({exec}) not found").into());
     }
 
-    if h.runtime == "scout" && PATH_STEAM.join("ubuntu12_32/steam-runtime/run.sh").exists() {
+    if h.runtime == "scout" && !PATH_STEAM.join("ubuntu12_32/steam-runtime/run.sh").exists() {
         return Err("Steam Scout Runtime not found".into());
     } else if h.runtime == "soldier"
-        && PATH_STEAM
+        && !PATH_STEAM
             .join("steamapps/common/SteamLinuxRuntime_soldier")
             .exists()
     {
