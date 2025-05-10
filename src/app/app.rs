@@ -8,8 +8,6 @@ use crate::util::*;
 use dialog::{Choice, DialogBox};
 use eframe::egui::{self, Key, Ui};
 
-use std::path::PathBuf;
-
 #[derive(Eq, PartialEq)]
 pub enum MenuPage {
     Main,
@@ -132,6 +130,11 @@ impl PartyApp {
             }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.label(format!("v{}", env!("CARGO_PKG_VERSION")));
+                ui.add(egui::Separator::default().vertical());
+                ui.hyperlink_to(
+                    "Open Source Licenses",
+                    "https://github.com/wunnr/partydeck-rs/tree/main?tab=License-2-ov-file",
+                );
             });
         });
     }
@@ -357,6 +360,10 @@ impl PartyApp {
             } else {
                 ui.label("🐧 Native");
             }
+            ui.add(egui::Separator::default().vertical());
+            ui.label(format!("Author: {}", cur_handler!(self).author));
+            ui.add(egui::Separator::default().vertical());
+            ui.label(format!("Version: {}", cur_handler!(self).version));
         });
 
         egui::ScrollArea::horizontal()
