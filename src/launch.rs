@@ -4,7 +4,7 @@ use crate::app::PartyConfig;
 use crate::handler::*;
 use crate::input::*;
 use crate::paths::*;
-use crate::util::{get_instance_resolution, get_rootpath, get_screen_resolution};
+use crate::util::{get_instance_resolution, get_rootpath, get_screen_resolution, msg};
 
 pub fn launch_from_handler(
     h: &Handler,
@@ -17,6 +17,8 @@ pub fn launch_from_handler(
     let party = PATH_PARTY.display();
     let steam = PATH_STEAM.display();
     let res = PATH_RES.display();
+
+    let mut res_warn = true;
 
     let gamedir = match h.symlink_dir {
         true => format!("{party}/gamesyms/{}", h.uid),
@@ -37,8 +39,6 @@ pub fn launch_from_handler(
         cmd.push_str(&format!("SDL_DYNAMIC_API=\"{steam}/{path_sdl}\" "));
     }
     if h.win {
-        let appid = h.steam_appid.as_str();
-        cmd.push_str(&format!("SteamAppId=\"{appid}\" "));
         cmd.push_str(&format!("PROTON_VERB=run WINEPREFIX={party}/pfx "));
         let protonpath = match cfg.proton_version.is_empty() {
             true => "GE-Proton",
@@ -95,6 +95,14 @@ pub fn launch_from_handler(
         let path_save = &format!("{path_prof}/saves/{}", h.uid.as_str());
 
         let (gsc_width, gsc_height) = get_instance_resolution(players.len(), i, width, height);
+
+        if gsc_height < 600 && res_warn {
+            msg(
+                "Resolution warning",
+                "Instance resolution is below 600p! The game may experience graphical issues or not run at all. Increase the resolution scale in settings if this happens.",
+            );
+            res_warn = false;
+        }
 
         cmd.push_str(&format!("gamescope -W {gsc_width} -H {gsc_height} -- "));
         cmd.push_str(&format!(

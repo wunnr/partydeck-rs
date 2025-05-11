@@ -11,12 +11,12 @@ pub fn msg(title: &str, contents: &str) {
     let _ = dialog::Message::new(contents).title(title).show();
 }
 
-pub fn get_screen_resolution() -> (i32, i32) {
+pub fn get_screen_resolution() -> (u32, u32) {
     if let Ok(conn) = x11rb::connect(None) {
         let screen = &conn.0.setup().roots[0];
         return (
-            screen.width_in_pixels as i32,
-            screen.height_in_pixels as i32,
+            screen.width_in_pixels as u32,
+            screen.height_in_pixels as u32,
         );
     }
     // Fallback to a common resolution if detection fails
@@ -29,7 +29,7 @@ pub fn get_instance_resolution(
     i: usize,
     basewidth: u32,
     baseheight: u32,
-) -> (String, String) {
+) -> (u32, u32) {
     let (w, h) = match playercount {
         1 => (basewidth, baseheight),
         2 => (basewidth, baseheight / 2),
@@ -59,7 +59,7 @@ pub fn get_instance_resolution(
         8 => (basewidth / 2, baseheight / 4),
         _ => (basewidth, baseheight),
     };
-    return (format!("{w}"), format!("{h}"));
+    return (w, h);
 }
 
 pub fn create_proton_pfx(pfx: PathBuf) -> Result<(), Box<dyn Error>> {
