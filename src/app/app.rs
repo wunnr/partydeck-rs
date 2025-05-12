@@ -170,10 +170,16 @@ impl PartyApp {
 
     fn display_info_panel(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::bottom("info_panel")
-            .exact_height(75.0)
+            .exact_height(100.0)
             .show(ctx, |ui| {
-                if self.cur_page == MenuPage::Game {
-                    self.infotext = cur_handler!(self).info.to_owned();
+                match self.cur_page {
+                    MenuPage::Game => {
+                        self.infotext = cur_handler!(self).info.to_owned();
+                    }
+                    MenuPage::Profiles => {
+                        self.infotext = "Create profiles to persistently store game save data, settings, and stats.".to_string();
+                    }
+                    _ => {}
                 }
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.label(&self.infotext);
