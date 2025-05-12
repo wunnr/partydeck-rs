@@ -104,7 +104,9 @@ pub fn launch_from_handler(
             res_warn = false;
         }
 
-        cmd.push_str(&format!("gamescope -W {gsc_width} -H {gsc_height} -- "));
+        cmd.push_str(&format!(
+            "gamescope -W {gsc_width} -H {gsc_height} --backend=sdl -- "
+        ));
         cmd.push_str(&format!(
             "bwrap --die-with-parent --dev-bind / / --tmpfs /tmp "
         ));
@@ -174,7 +176,7 @@ pub fn launch_from_handler(
             // Proton games need a ~5 second buffer in-between launches
             // TODO: investigate why this is
             if h.win {
-                cmd.push_str("& sleep 5; ");
+                cmd.push_str("& sleep 6; ");
             } else {
                 cmd.push_str("& sleep 0.01; ");
             }
