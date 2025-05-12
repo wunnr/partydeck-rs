@@ -94,7 +94,6 @@ impl eframe::App for PartyApp {
 impl PartyApp {
     fn display_top_panel(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            ui.image(egui::include_image!("../../res/icon.png"));
             if ui
                 .add(egui::Button::image_and_text(
                     egui::include_image!("../../res/BTN_NORTH.png"),
