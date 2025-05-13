@@ -55,12 +55,13 @@ pub fn copy_dir_recursive(
 }
 
 pub fn get_rootpath(uid: &str) -> Result<String, Box<dyn Error>> {
-    // Try to load from paths.json first
+    println!("Reading paths.json for root path of {uid}");
     if let Ok(file) = File::open(PATH_PARTY.join("paths.json")) {
         let reader = BufReader::new(file);
         if let Ok(json) = serde_json::from_reader::<_, Value>(reader) {
             if let Some(path) = json.get(uid) {
                 if let Some(path_str) = path.as_str() {
+                    println!("Found root path for {uid}: {path_str}");
                     return Ok(path_str.to_string());
                 }
             }
@@ -76,6 +77,7 @@ pub fn get_rootpath(uid: &str) -> Result<String, Box<dyn Error>> {
     let result = path.display().to_string();
 
     // Create/update the json file
+    println!("Updating paths.json with {uid}: {result}");
     let mut paths = if let Ok(file) = File::open(PATH_PARTY.join("paths.json")) {
         serde_json::from_reader(BufReader::new(file))
             .unwrap_or(Value::Object(serde_json::Map::new()))

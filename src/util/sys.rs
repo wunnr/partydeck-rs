@@ -14,12 +14,17 @@ pub fn msg(title: &str, contents: &str) {
 pub fn get_screen_resolution() -> (u32, u32) {
     if let Ok(conn) = x11rb::connect(None) {
         let screen = &conn.0.setup().roots[0];
+        println!(
+            "Got screen resolution: {}x{}",
+            screen.width_in_pixels, screen.height_in_pixels
+        );
         return (
             screen.width_in_pixels as u32,
             screen.height_in_pixels as u32,
         );
     }
     // Fallback to a common resolution if detection fails
+    println!("Failed to detect screen resolution, using fallback 1920x1080");
     (1920, 1080)
 }
 
@@ -59,26 +64,26 @@ pub fn get_instance_resolution(
         // 8 => (basewidth / 2, baseheight / 4),
         _ => (basewidth, baseheight),
     };
+    println!("Resolution for instance {}/{playercount}: {w}x{h}", i + 1);
     return (w, h);
 }
 
 pub fn create_proton_pfx(pfx: PathBuf) -> Result<(), Box<dyn Error>> {
     if pfx.exists() {
-        println!("{} exists", pfx.display());
+        println!("Prefix {} exists, continuing...", pfx.display());
         return Ok(());
     }
 
     let umu = PATH_RES.join("umu-run");
     let reg = PATH_RES.join("wine_disable_hidraw.reg");
-    let mut hidrawpatch = String::new();
-
-    hidrawpatch.push_str(&format!(
+    let hidrawpatch = format!(
         "WINEPREFIX=\"{}\" \"{}\" regedit \"{}\"",
         pfx.display(),
         umu.display(),
         reg.display()
-    ));
+    );
 
+    println!("Disabling hidraw in the wine prefix.....");
     let err = std::process::Command::new("sh")
         .arg("-c")
         .arg(&hidrawpatch)
@@ -88,13 +93,16 @@ pub fn create_proton_pfx(pfx: PathBuf) -> Result<(), Box<dyn Error>> {
     }
 
     sleep(Duration::from_secs(5));
+
+    println!("Done.");
     Ok(())
 }
 
 // Sends the splitscreen script to the active KWin session through DBus
 pub fn kwin_dbus_start_script(file: PathBuf) -> Result<(), Box<dyn Error>> {
+    println!("Loading script {}...", file.display());
     if !file.exists() {
-        return Err("dbus: script file doesn't exist!".into());
+        return Err("Script file doesn't exist!".into());
     }
 
     let conn = zbus::blocking::Connection::session()?;
@@ -106,12 +114,15 @@ pub fn kwin_dbus_start_script(file: PathBuf) -> Result<(), Box<dyn Error>> {
     )?;
 
     let _: i32 = proxy.call("loadScript", &(file.to_string_lossy(), "splitscreen"))?;
+    println!("Script loaded. Starting...");
     let _: () = proxy.call("start", &())?;
 
+    println!("KWin script started.");
     Ok(())
 }
 
 pub fn kwin_dbus_unload_script() -> Result<(), Box<dyn Error>> {
+    println!("Unloading splitscreen script...");
     let conn = zbus::blocking::Connection::session()?;
     let proxy = zbus::blocking::Proxy::new(
         &conn,
@@ -122,5 +133,6 @@ pub fn kwin_dbus_unload_script() -> Result<(), Box<dyn Error>> {
 
     let _: bool = proxy.call("unloadScript", &("splitscreen"))?;
 
+    println!("Script unloaded.");
     Ok(())
 }

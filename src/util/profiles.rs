@@ -11,6 +11,7 @@ pub fn create_profile(name: &str) -> Result<(), std::io::Error> {
         return Ok(());
     }
 
+    println!("Creating profile {name}");
     let path_steam = PATH_PARTY.join(format!("profiles/{name}/steam/settings"));
     std::fs::create_dir_all(path_steam.clone())?;
 
@@ -20,6 +21,7 @@ pub fn create_profile(name: &str) -> Result<(), std::io::Error> {
     );
     std::fs::write(path_steam.join("configs.user.ini"), usersettings)?;
 
+    println!("Created successfully");
     Ok(())
 }
 
@@ -32,15 +34,17 @@ pub fn create_gamesave(name: &str, h: &Handler) -> Result<(), Box<dyn Error>> {
         .join(&h.uid);
 
     if path_gamesave.exists() {
+        println!("{} already has save for {}, continuing...", name, h.uid);
         return Ok(());
     }
-
+    println!("Creating game save {} for {}", h.uid, name);
     std::fs::create_dir_all(path_gamesave.join("_AppData"))?;
     std::fs::create_dir_all(path_gamesave.join("_Documents"))?;
     std::fs::create_dir_all(path_gamesave.join("_share"))?;
     std::fs::create_dir_all(path_gamesave.join("_config"))?;
 
     for subdir in &h.game_unique_paths {
+        println!("Creating subdirectory /{subdir}");
         let path = path_gamesave.join(subdir);
         if !path.exists() {
             std::fs::create_dir_all(path)?;
@@ -49,9 +53,11 @@ pub fn create_gamesave(name: &str, h: &Handler) -> Result<(), Box<dyn Error>> {
 
     let copy_save_src = PathBuf::from(&h.path_handler).join("copy_to_profilesave");
     if copy_save_src.exists() {
+        println!("{} handler has built-in save data, copying...", h.uid);
         copy_dir_recursive(&copy_save_src, &path_gamesave, false, true)?;
     }
 
+    println!("Save data directories created successfully");
     Ok(())
 }
 

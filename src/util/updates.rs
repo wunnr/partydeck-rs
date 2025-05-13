@@ -3,6 +3,7 @@ use std::error::Error;
 use crate::paths::*;
 
 pub fn update_umu_launcher() -> Result<(), Box<dyn Error>> {
+    print!("Updating UMU Launcher...");
     if !PATH_RES.exists() {
         std::fs::create_dir_all(PATH_RES.clone())?;
     }
@@ -54,6 +55,7 @@ pub fn update_umu_launcher() -> Result<(), Box<dyn Error>> {
 }
 
 pub fn update_goldberg_emu() -> Result<(), Box<dyn Error>> {
+    print!("Updating Goldberg Emulator...");
     // Get latest release info from GitHub API
     let client = reqwest::blocking::Client::new();
     let response = client
