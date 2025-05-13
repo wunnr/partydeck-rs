@@ -38,10 +38,19 @@ pub fn create_gamesave(name: &str, h: &Handler) -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
     println!("Creating game save {} for {}", h.uid, name);
-    std::fs::create_dir_all(path_gamesave.join("_AppData"))?;
-    std::fs::create_dir_all(path_gamesave.join("_Documents"))?;
-    std::fs::create_dir_all(path_gamesave.join("_share"))?;
-    std::fs::create_dir_all(path_gamesave.join("_config"))?;
+
+    if h.win_unique_appdata {
+        std::fs::create_dir_all(path_gamesave.join("_AppData"))?;
+    }
+    if h.win_unique_documents {
+        std::fs::create_dir_all(path_gamesave.join("_Documents"))?;
+    }
+    if h.linux_unique_localshare {
+        std::fs::create_dir_all(path_gamesave.join("_share"))?;
+    }
+    if h.linux_unique_config {
+        std::fs::create_dir_all(path_gamesave.join("_config"))?;
+    }
 
     for subdir in &h.game_unique_paths {
         println!("Creating subdirectory /{subdir}");
