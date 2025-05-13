@@ -41,22 +41,22 @@ pub fn get_instance_resolution(
             }
         }
         4 => (basewidth / 2, baseheight / 2),
-        5 => {
-            if i < 2 {
-                (basewidth / 2, baseheight / 2)
-            } else {
-                (basewidth / 3, baseheight / 2)
-            }
-        }
-        6 => (basewidth / 3, baseheight / 2),
-        7 => {
-            if i < 2 || i > 4 {
-                (basewidth / 2, baseheight / 3)
-            } else {
-                (basewidth / 3, baseheight / 3)
-            }
-        }
-        8 => (basewidth / 2, baseheight / 4),
+        // 5 => {
+        //     if i < 2 {
+        //         (basewidth / 2, baseheight / 2)
+        //     } else {
+        //         (basewidth / 3, baseheight / 2)
+        //     }
+        // }
+        // 6 => (basewidth / 3, baseheight / 2),
+        // 7 => {
+        //     if i < 2 || i > 4 {
+        //         (basewidth / 2, baseheight / 3)
+        //     } else {
+        //         (basewidth / 3, baseheight / 3)
+        //     }
+        // }
+        // 8 => (basewidth / 2, baseheight / 4),
         _ => (basewidth, baseheight),
     };
     return (w, h);

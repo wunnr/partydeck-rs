@@ -487,11 +487,13 @@ impl PartyApp {
             }
             match pad.poll() {
                 Some(PadButton::ABtn) => {
-                    self.players.push(Player {
-                        pad_index: i,
-                        profname: String::new(),
-                        profselection: 0,
-                    });
+                    if self.players.len() < 4 {
+                        self.players.push(Player {
+                            pad_index: i,
+                            profname: String::new(),
+                            profselection: 0,
+                        });
+                    }
                 }
                 Some(PadButton::BBtn) => {
                     if self.players.len() == 0 {
