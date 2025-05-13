@@ -74,6 +74,7 @@ pub fn create_proton_pfx(pfx: PathBuf) -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
+    println!("Creating prefix {}...", pfx.display());
     let umu = PATH_RES.join("umu-run");
     let reg = PATH_RES.join("wine_disable_hidraw.reg");
     let hidrawpatch = format!(
@@ -84,11 +85,11 @@ pub fn create_proton_pfx(pfx: PathBuf) -> Result<(), Box<dyn Error>> {
     );
 
     println!("Disabling hidraw in the wine prefix.....");
-    let err = std::process::Command::new("sh")
+    let patchcmd = std::process::Command::new("sh")
         .arg("-c")
         .arg(&hidrawpatch)
         .status()?;
-    if !err.success() {
+    if !patchcmd.success() {
         return Err("Failed to disable hidraw in the wine prefix".into());
     }
 
