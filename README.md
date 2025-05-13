@@ -16,7 +16,7 @@ A split-screen game launcher for Linux/SteamOS
 
 ## Features
 
-- Runs up to 6 instances of a game at a time and automatically fits each game window onto the screen
+- Runs up to 4 instances of a game at a time and automatically fits each game window onto the screen
 - Supports native Linux games as well as Windows games through Proton
 - Handler system that tells the launcher how to handle game files, meaning very little manual setup is required
 - Steam multiplayer API is emulated, allowing for multiple instances of Steam games

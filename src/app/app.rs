@@ -218,7 +218,7 @@ impl PartyApp {
         ui.label("If you have found this software useful, consider donating to support further development!");
         ui.hyperlink_to("Ko-fi", "https://ko-fi.com/wunner");
         ui.label("If you've encountered issues or want to suggest improvements, criticism and feedback are always appreciated!");
-        ui.hyperlink_to("GitHub", "https://github.com/wunnr/PartyDeck");
+        ui.hyperlink_to("GitHub", "https://github.com/wunnr/partydeck-rs");
     }
 
     fn display_page_settings(&mut self, ui: &mut Ui) {
