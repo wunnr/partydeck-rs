@@ -75,7 +75,11 @@ impl Handler {
                 .as_str()
                 .unwrap_or_default()
                 .to_string(),
-            exec: json["game.exec"].as_str().unwrap_or_default().to_string(),
+            exec: json["game.exec"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string()
+                .sanitize_path(),
             args: json["game.args"]
                 .as_array()
                 .map(|arr| {
@@ -88,7 +92,7 @@ impl Handler {
                 .as_array()
                 .map(|arr| {
                     arr.iter()
-                        .map(|v| v.as_str().unwrap_or_default().to_string())
+                        .map(|v| v.as_str().unwrap_or_default().to_string().sanitize_path())
                         .collect()
                 })
                 .unwrap_or_default(),
@@ -96,7 +100,7 @@ impl Handler {
                 .as_array()
                 .map(|arr| {
                     arr.iter()
-                        .map(|v| v.as_str().unwrap_or_default().to_string())
+                        .map(|v| v.as_str().unwrap_or_default().to_string().sanitize_path())
                         .collect()
                 })
                 .unwrap_or_default(),
@@ -112,7 +116,8 @@ impl Handler {
             path_goldberg: json["goldberg.path"]
                 .as_str()
                 .unwrap_or_default()
-                .to_string(),
+                .to_string()
+                .sanitize_path(),
             steam_appid: json["goldberg.appid"]
                 .as_str()
                 .unwrap_or_default()
@@ -133,7 +138,7 @@ impl Handler {
                 .as_array()
                 .map(|arr| {
                     arr.iter()
-                        .map(|v| v.as_str().unwrap_or_default().to_string())
+                        .map(|v| v.as_str().unwrap_or_default().to_string().sanitize_path())
                         .collect()
                 })
                 .unwrap_or_default(),
@@ -277,7 +282,7 @@ pub fn create_symlink_folder(h: &Handler) -> Result<(), Box<dyn Error>> {
 
     if !h.path_goldberg.is_empty() {
         let dest = match h.path_goldberg.as_str() {
-            "/" => path_sym.to_owned(),
+            "." => path_sym.to_owned(),
             _ => path_sym.join(&h.path_goldberg),
         };
 
