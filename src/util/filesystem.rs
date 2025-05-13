@@ -95,3 +95,51 @@ pub fn get_rootpath(uid: &str) -> Result<String, Box<dyn Error>> {
 
     Ok(result)
 }
+
+pub trait SanitizePath {
+    fn sanitize_path(&self) -> String;
+}
+
+impl SanitizePath for String {
+    fn sanitize_path(&self) -> String {
+        if self.is_empty() {
+            return String::new();
+        }
+
+        let mut sanitized = self.clone();
+
+        // Remove potentially dangerous characters
+        let chars_to_sanitize = [
+            ';', '&', '|', '$', '`', '(', ')', '<', '>', '\'', '"', '\\', '/',
+        ];
+
+        if chars_to_sanitize.iter().any(|&c| sanitized.contains(c)) {
+            sanitized = sanitized
+                .replace(";", "")
+                .replace("&", "")
+                .replace("|", "")
+                .replace("$", "")
+                .replace("`", "")
+                .replace("(", "")
+                .replace(")", "")
+                .replace("<", "")
+                .replace(">", "")
+                .replace("'", "")
+                .replace("\"", "")
+                .replace("\\", "/") // Convert Windows backslashes to forward slashes
+                .replace("//", "/"); // Remove any doubled slashes
+        }
+
+        // Prevent path traversal attacks
+        while sanitized.contains("../") || sanitized.contains("./") {
+            sanitized = sanitized.replace("../", "").replace("./", "");
+        }
+
+        // Remove leading slash to allow joining with other paths
+        if sanitized.starts_with('/') {
+            sanitized = sanitized[1..].to_string();
+        }
+
+        sanitized
+    }
+}

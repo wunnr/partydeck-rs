@@ -8,7 +8,7 @@ mod updates;
 pub use profiles::{create_gamesave, create_profile, remove_guest_profiles, scan_profiles};
 
 // Re-export functions from filesystem
-pub use filesystem::{copy_dir_recursive, get_rootpath};
+pub use filesystem::{SanitizePath, copy_dir_recursive, get_rootpath};
 
 // Re-export functions from launcher
 pub use sys::{
