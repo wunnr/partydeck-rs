@@ -25,7 +25,7 @@ pub struct Handler {
     pub is32bit: bool,
     pub exec: String,
     pub args: Vec<String>,
-    pub exclude_sym_paths: Vec<String>,
+    pub copy_instead_paths: Vec<String>,
     pub remove_paths: Vec<String>,
     pub dll_overrides: Vec<String>,
 
@@ -88,7 +88,7 @@ impl Handler {
                         .collect()
                 })
                 .unwrap_or_default(),
-            exclude_sym_paths: json["game.exclude_sym_paths"]
+            copy_instead_paths: json["game.copy_instead_paths"]
                 .as_array()
                 .map(|arr| {
                     arr.iter()
@@ -343,8 +343,8 @@ pub fn create_symlink_folder(h: &Handler) -> Result<(), Box<dyn Error>> {
             }
         }
     }
-    // exclude_sym_paths takes symlink files and replaces them with their real equivalents
-    for path in &h.exclude_sym_paths {
+    // copy_instead_paths takes symlink files and replaces them with their real equivalents
+    for path in &h.copy_instead_paths {
         let src = path_root.join(path);
         if !src.exists() {
             continue;
