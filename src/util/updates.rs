@@ -1,5 +1,5 @@
 use std::error::Error;
-
+use std::io::ErrorKind;
 use crate::paths::*;
 
 pub fn update_umu_launcher() -> Result<(), Box<dyn Error>> {
@@ -113,10 +113,13 @@ pub fn update_goldberg_emu() -> Result<(), Box<dyn Error>> {
         .arg("x")
         .arg(&linux_path)
         .arg(format!("-o{}", tmp_dir.display()))
-        .status()?;
+        .spawn();
 
-    if !status.success() {
-        return Err("Failed to decompress Linux release".into());
+    if let Err(error) = status {
+        return match error.kind() {
+            ErrorKind::NotFound => Err("7z executable could not be found. Install 7z and try again".into()),
+            _ => Err("Failed to decompress Linux release".into())
+        }
     }
 
     // Then extract the tar
