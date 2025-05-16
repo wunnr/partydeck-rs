@@ -1,4 +1,4 @@
-use dialog::DialogBox;
+use dialog::{Choice, DialogBox};
 use std::error::Error;
 use std::path::PathBuf;
 use std::thread::sleep;
@@ -9,6 +9,15 @@ use crate::paths::*;
 
 pub fn msg(title: &str, contents: &str) {
     let _ = dialog::Message::new(contents).title(title).show();
+}
+
+pub fn yesno(title: &str, contents: &str) -> bool {
+    if let Ok(prompt) = dialog::Question::new(contents).title(title).show() {
+        if prompt == Choice::Yes {
+            return true;
+        }
+    }
+    false
 }
 
 pub fn get_screen_resolution() -> (u32, u32) {
