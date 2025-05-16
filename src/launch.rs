@@ -185,3 +185,102 @@ pub fn launch_from_handler(
 
     Ok(cmd)
 }
+
+pub fn launch_executable(
+    exec_path: &PathBuf,
+    all_pads: &Vec<Gamepad>,
+    players: &Vec<Player>,
+    cfg: &PartyConfig,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let exec = exec_path.to_string_lossy();
+
+    if !exec_path.exists() {
+        return Err(format!("Executable ({exec}) not found").into());
+    }
+
+    let party = PATH_PARTY.display();
+    let res = PATH_RES.display();
+
+    let mut res_warn = true;
+
+    let win = if exec_path.extension().unwrap_or_default() == "exe" {
+        true
+    } else {
+        false
+    };
+
+    let runtime = match win {
+        true => &format!("{res}/umu-run"),
+        false => "",
+    };
+
+    let gamedir = exec_path.parent().unwrap().to_string_lossy();
+
+    let mut cmd = String::new();
+    // Command: "gamescope [settings] -- bwrap [binds] [runtime] [exec] [args] & ..."
+    cmd.push_str("export ");
+    cmd.push_str("SDL_JOYSTICK_HIDAPI=0 ");
+    cmd.push_str("ENABLE_GAMESCOPE_WSI=0 ");
+
+    if win {
+        cmd.push_str(&format!("PROTON_VERB=run WINEPREFIX={party}/pfx "));
+        let protonpath = match cfg.proton_version.is_empty() {
+            true => "GE-Proton",
+            false => cfg.proton_version.as_str(),
+        };
+        cmd.push_str(&format!("PROTONPATH={protonpath} "));
+    }
+    cmd.push_str("; ");
+
+    let (screen_width, screen_height) = get_screen_resolution();
+    let scale_factor = cfg.render_scale as f32 / 100.0;
+    let width = (screen_width as f32 * scale_factor) as u32;
+    let height = (screen_height as f32 * scale_factor) as u32;
+
+    cmd.push_str(&format!("cd \"{gamedir}\"; "));
+    for (i, p) in players.iter().enumerate() {
+        let (gsc_width, gsc_height) = get_instance_resolution(players.len(), i, width, height);
+
+        if gsc_height < 600 && res_warn {
+            msg(
+                "Resolution warning",
+                "Instance resolution is below 600p! The game may experience graphical issues or not run at all. Increase the resolution scale in settings if this happens.",
+            );
+            res_warn = false;
+        }
+
+        cmd.push_str(&format!(
+            "gamescope -W {gsc_width} -H {gsc_height} --backend=sdl -- "
+        ));
+        cmd.push_str(&format!(
+            "bwrap --die-with-parent --dev-bind / / --tmpfs /tmp "
+        ));
+
+        // Bind player profile directories to the game's directories
+        let mut binds = String::new();
+
+        // Mask out any gamepads that aren't this player's
+        for (i, pad) in all_pads.iter().enumerate() {
+            if p.pad_index == i {
+                continue;
+            } else {
+                let path = pad.path();
+                binds.push_str(&format!("--bind /dev/null {path} "))
+            }
+        }
+
+        cmd.push_str(&format!("{binds} {runtime} \"{exec}\""));
+
+        if i < players.len() - 1 {
+            // Proton games need a ~5 second buffer in-between launches
+            // TODO: investigate why this is
+            if win {
+                cmd.push_str("& sleep 6; ");
+            } else {
+                cmd.push_str("& sleep 0.01; ");
+            }
+        }
+    }
+
+    Ok(cmd)
+}
