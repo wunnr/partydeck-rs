@@ -1,13 +1,13 @@
 use crate::paths::*;
 use crate::util::*;
 
-use rfd::FileDialog;
 use serde_json::Value;
 use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 
+#[derive(Clone)]
 pub struct Handler {
     // Members that are determined by context
     pub path_handler: PathBuf,
@@ -231,16 +231,13 @@ pub fn scan_handlers() -> Vec<Handler> {
     out
 }
 
-pub fn install_handler_from_file() -> Result<(), Box<dyn Error>> {
-    let file = FileDialog::new()
-        .set_title("Select PartyDeck Handler File")
-        .set_directory(&*PATH_HOME)
-        .add_filter("PartyDeck Handler (.pdh)", &["pdh"])
-        .pick_file()
-        .ok_or_else(|| "No file picked");
+pub fn install_handler_from_file(file: &PathBuf) -> Result<(), Box<dyn Error>> {
+    if !file.exists() || !file.is_file() || file.extension().unwrap_or_default() != "pdh" {
+        return Err("Handler not valid!".into());
+    }
+
     let dir_handlers = PATH_PARTY.join("handlers");
     let dir_tmp = PATH_PARTY.join("tmp");
-    let file = file.map_err(|e| format!("Failed to read file: {}", e))?;
     if !dir_tmp.exists() {
         std::fs::create_dir_all(&dir_tmp)?;
     }
