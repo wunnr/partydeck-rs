@@ -31,6 +31,7 @@ fn main() -> eframe::Result {
         if let Err(e) = update_umu_launcher() {
             println!("Failed to download UMU Launcher: {}", e);
             msg("Error", &format!("Failed to download UMU Launcher: {}", e));
+            std::fs::remove_file(PATH_RES.join("umu-run")).unwrap();
             return Ok(());
         }
     }
@@ -42,6 +43,8 @@ fn main() -> eframe::Result {
         if let Err(e) = update_goldberg_emu() {
             println!("Failed to download Goldberg: {}", e);
             msg("Error", &format!("Failed to download Goldberg: {}", e));
+            std::fs::remove_dir_all(PATH_PARTY.join("goldberg_linux")).unwrap();
+            std::fs::remove_dir_all(PATH_PARTY.join("goldberg_win")).unwrap();
             return Ok(());
         }
     }
