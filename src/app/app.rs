@@ -1,12 +1,14 @@
 use crate::app::config::*;
+use crate::game::{Game::*, *};
 use crate::handler::*;
 use crate::input::*;
-use crate::launch::launch_from_handler;
+use crate::launch::{launch_executable, launch_from_handler};
 use crate::paths::*;
 use crate::util::*;
 
-use dialog::{Choice, DialogBox};
+use dialog::DialogBox;
 use eframe::egui::{self, Key, Ui};
+use std::path::PathBuf;
 
 #[derive(Eq, PartialEq)]
 pub enum MenuPage {
@@ -23,14 +25,14 @@ pub struct PartyApp {
     pub infotext: String,
     pub pads: Vec<Gamepad>,
     pub players: Vec<Player>,
-    pub handlers: Vec<Handler>,
+    pub games: Vec<Game>,
     pub profiles: Vec<String>,
-    pub selected_handler: usize,
+    pub selected_game: usize,
 }
 
-macro_rules! cur_handler {
+macro_rules! cur_game {
     ($self:expr) => {
-        $self.handlers[$self.selected_handler]
+        &$self.games[$self.selected_game]
     };
 }
 
@@ -42,9 +44,9 @@ impl Default for PartyApp {
             infotext: String::new(),
             pads: scan_evdev_gamepads(),
             players: Vec::new(),
-            handlers: scan_handlers(),
+            games: scan_all_games(),
             profiles: Vec::new(),
-            selected_handler: 0,
+            selected_game: 0,
         }
     }
 }
@@ -128,7 +130,13 @@ impl PartyApp {
                 self.pads = scan_evdev_gamepads();
             }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                ui.label(format!("v{}", env!("CARGO_PKG_VERSION")));
+                if ui.button("❌ Quit").clicked() {
+                    ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+                }
+                ui.hyperlink_to(
+                    format!("v{}", env!("CARGO_PKG_VERSION")),
+                    "https://github.com/wunnr/partydeck-rs/releases",
+                );
                 ui.add(egui::Separator::default().vertical());
                 ui.hyperlink_to(
                     "Open Source Licenses",
@@ -144,27 +152,26 @@ impl PartyApp {
             ui.heading("Games");
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("➕").clicked() {
-                    if let Err(err) = install_handler_from_file() {
-                        if err.to_string() != "Failed to read file: No file picked".to_string() {
-                            msg("Error", &format!("Couldn't install handler: {err}"));
-                        }
+                    if let Err(err) = add_game() {
+                        println!("Couldn't add game: {err}");
+                        msg("Error", &format!("Couldn't add game: {err}"));
                     }
                     let dir_tmp = PATH_PARTY.join("tmp");
                     if dir_tmp.exists() {
                         std::fs::remove_dir_all(&dir_tmp).unwrap();
                     }
-                    self.handlers.clear();
-                    self.handlers = crate::handler::scan_handlers();
+                    self.games.clear();
+                    self.games = crate::game::scan_all_games();
                 }
                 if ui.button("🔄").clicked() {
-                    self.handlers.clear();
-                    self.handlers = crate::handler::scan_handlers();
+                    self.games.clear();
+                    self.games = crate::game::scan_all_games();
                 }
             });
         });
         ui.separator();
         egui::ScrollArea::vertical().show(ui, |ui| {
-            self.display_handler_list(ui);
+            self.display_game_list(ui);
         });
     }
 
@@ -174,7 +181,14 @@ impl PartyApp {
             .show(ctx, |ui| {
                 match self.cur_page {
                     MenuPage::Game => {
-                        self.infotext = cur_handler!(self).info.to_owned();
+                        match cur_game!(self){
+                            Game::Executable { path, .. } => {
+                                self.infotext = format!("{}", path.display());
+                            }
+                            Game::HandlerRef(h) => {
+                                self.infotext = h.info.to_owned();
+                            }
+                        }
                     }
                     MenuPage::Profiles => {
                         self.infotext = "Create profiles to persistently store game save data, settings, and stats.".to_string();
@@ -187,25 +201,55 @@ impl PartyApp {
             });
     }
 
-    fn display_handler_list(&mut self, ui: &mut Ui) {
-        for (i, handler) in self.handlers.iter().enumerate() {
+    fn display_game_list(&mut self, ui: &mut Ui) {
+        let mut refresh_games = false;
+        for (i, game) in self.games.iter().enumerate() {
             ui.horizontal(|ui| {
                 ui.add(
-                    egui::Image::new(format!(
-                        "file://{}/icon.png",
-                        handler.path_handler.display()
-                    ))
-                    .max_width(16.0)
-                    .corner_radius(2),
+                    egui::Image::new(game.icon())
+                        .max_width(16.0)
+                        .corner_radius(2),
                 );
-                let btn = ui.selectable_value(&mut self.selected_handler, i, handler.display());
+                let btn = ui.selectable_value(&mut self.selected_game, i, game.name());
                 if btn.has_focus() {
                     btn.scroll_to_me(None);
                 }
                 if btn.clicked() {
                     self.cur_page = MenuPage::Game;
                 };
+
+                let popup_id = ui.make_persistent_id(format!("gamectx{}", i));
+
+                egui::popup::popup_below_widget(
+                    ui,
+                    popup_id,
+                    &btn,
+                    egui::popup::PopupCloseBehavior::CloseOnClick,
+                    |ui| {
+                        if ui.button("Remove").clicked() {
+                            if yesno(
+                                "Remove game?",
+                                &format!("Are you sure you want to remove {}?", game.name()),
+                            ) {
+                                if let Err(err) = remove_game(&self.games[i]) {
+                                    println!("Failed to remove game: {}", err);
+                                    msg("Error", &format!("Failed to remove game: {}", err));
+                                }
+                            }
+                            refresh_games = true;
+                        }
+                    },
+                );
+
+                if btn.secondary_clicked() {
+                    ui.memory_mut(|mem| mem.toggle_popup(popup_id));
+                }
             });
+        }
+        // Hacky workaround to avoid borrowing conflicts from inside the loop
+        if refresh_games {
+            self.games.clear();
+            self.games = scan_all_games();
         }
     }
 
@@ -250,18 +294,27 @@ impl PartyApp {
 
         ui.horizontal(|ui| {
         if ui.button("Erase Proton Prefix").clicked() {
-            if let Ok(prompt) = dialog::Question::new("This will erase the Wine prefix used by PartyDeck. This shouldn't erase profile/game-specific data, but exercise caution. Are you sure?").title("Erase Prefix?").show(){
-                if prompt == Choice::Yes && PATH_PARTY.join("pfx").exists() {
-                    std::fs::remove_dir_all(PATH_PARTY.join("pfx")).unwrap();
+            if yesno("Erase Prefix?", "This will erase the Wine prefix used by PartyDeck. This shouldn't erase profile/game-specific data, but exercise caution. Are you sure?") && PATH_PARTY.join("gamesyms").exists() {
+                if let Err(err) = std::fs::remove_dir_all(PATH_PARTY.join("pfx")) {
+                    msg("Error", &format!("Couldn't erase pfx data: {}", err));
+                }
+                else if let Err(err) = std::fs::create_dir_all(PATH_PARTY.join("pfx")) {
+                    msg("Error", &format!("Couldn't re-create pfx directory: {}", err));
+                }
+                else {
                     msg("Data Erased", "Proton prefix data successfully erased.");
                 }
             }
         }
         if ui.button("Erase Symlink Data").clicked() {
-            if let Ok(prompt) = dialog::Question::new("This will erase all game symlink data. This shouldn't erase profile/game-specific data, but exercise caution. Are you sure?").title("Erase Symlink Data?").show(){
-                if prompt == Choice::Yes && PATH_PARTY.join("gamesyms").exists() {
-                    std::fs::remove_dir_all(PATH_PARTY.join("gamesyms")).unwrap();
-                    std::fs::create_dir_all(PATH_PARTY.join("gamesyms")).unwrap();
+            if yesno("Erase Symlink Data?", "This will erase all game symlink data. This shouldn't erase profile/game-specific data, but exercise caution. Are you sure?") && PATH_PARTY.join("gamesyms").exists() {
+                if let Err(err) = std::fs::remove_dir_all(PATH_PARTY.join("gamesyms")) {
+                    msg("Error", &format!("Couldn't erase symlink data: {}", err));
+                }
+                else if let Err(err) = std::fs::create_dir_all(PATH_PARTY.join("gamesyms")) {
+                    msg("Error", &format!("Couldn't re-create symlink directory: {}", err));
+                }
+                else {
                     msg("Data Erased", "Game symlink data successfully erased.");
                 }
             }
@@ -344,11 +397,8 @@ impl PartyApp {
 
     fn display_page_game(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            ui.image(format!(
-                "file://{}/icon.png",
-                cur_handler!(self).path_handler.display()
-            ));
-            ui.heading(cur_handler!(self).display());
+            ui.image(cur_game!(self).icon());
+            ui.heading(cur_game!(self).name());
         });
 
         ui.separator();
@@ -359,35 +409,39 @@ impl PartyApp {
                 self.profiles = scan_profiles(true);
                 self.cur_page = MenuPage::Players;
             }
-            ui.add(egui::Separator::default().vertical());
-            if cur_handler!(self).win {
-                ui.label(" Proton");
-            } else {
-                ui.label("🐧 Native");
+            if let HandlerRef(h) = cur_game!(self) {
+                ui.add(egui::Separator::default().vertical());
+                if h.win {
+                    ui.label(" Proton");
+                } else {
+                    ui.label("🐧 Native");
+                }
+                ui.add(egui::Separator::default().vertical());
+                ui.label(format!("Author: {}", h.author));
+                ui.add(egui::Separator::default().vertical());
+                ui.label(format!("Version: {}", h.version));
             }
-            ui.add(egui::Separator::default().vertical());
-            ui.label(format!("Author: {}", cur_handler!(self).author));
-            ui.add(egui::Separator::default().vertical());
-            ui.label(format!("Version: {}", cur_handler!(self).version));
         });
 
-        egui::ScrollArea::horizontal()
-            .max_width(f32::INFINITY)
-            .show(ui, |ui| {
-                let available_height = ui.available_height();
-                ui.horizontal(|ui| {
-                    for img in cur_handler!(self).img_paths.iter() {
-                        ui.add(
-                            egui::Image::new(format!("file://{}", img.display()))
-                                .fit_to_exact_size(egui::vec2(
-                                    available_height * 1.77,
-                                    available_height,
-                                ))
-                                .maintain_aspect_ratio(true),
-                        );
-                    }
+        if let HandlerRef(h) = cur_game!(self) {
+            egui::ScrollArea::horizontal()
+                .max_width(f32::INFINITY)
+                .show(ui, |ui| {
+                    let available_height = ui.available_height();
+                    ui.horizontal(|ui| {
+                        for img in h.img_paths.iter() {
+                            ui.add(
+                                egui::Image::new(format!("file://{}", img.display()))
+                                    .fit_to_exact_size(egui::vec2(
+                                        available_height * 1.77,
+                                        available_height,
+                                    ))
+                                    .maintain_aspect_ratio(true),
+                            );
+                        }
+                    });
                 });
-            });
+        }
     }
 
     fn display_page_players(&mut self, ui: &mut Ui) {
@@ -409,12 +463,16 @@ impl PartyApp {
         for player in &mut self.players {
             ui.horizontal(|ui| {
                 ui.label("👤");
-                egui::ComboBox::from_id_salt(format!("{i}")).show_index(
-                    ui,
-                    &mut player.profselection,
-                    self.profiles.len(),
-                    |i| self.profiles[i].clone(),
-                );
+                if let HandlerRef(_) = cur_game!(self) {
+                    egui::ComboBox::from_id_salt(format!("{i}")).show_index(
+                        ui,
+                        &mut player.profselection,
+                        self.profiles.len(),
+                        |i| self.profiles[i].clone(),
+                    );
+                } else {
+                    ui.label(format!("Player {}", i + 1));
+                }
                 ui.label(format!("🎮 {}", self.pads[player.pad_index].fancyname(),));
                 ui.small(format!("({})", self.pads[player.pad_index].path(),));
             });
@@ -423,11 +481,7 @@ impl PartyApp {
         if self.players.len() > 0 {
             ui.separator();
             if ui.button("Start").clicked() {
-                if let Err(err) = self.start_game() {
-                    println!("{}", err);
-                    msg("Launch Error", &format!("{err}"));
-                }
-                self.cur_page = MenuPage::Main;
+                self.start_game();
             }
         }
     }
@@ -512,13 +566,7 @@ impl PartyApp {
                     continue;
                 }
                 Some(PadButton::StartBtn) => {
-                    if self.players.len() > 0 {
-                        if let Err(err) = self.start_game() {
-                            println!("{}", err);
-                            msg("Launch Error", &format!("{err}"));
-                        }
-                    }
-                    self.cur_page = MenuPage::Main;
+                    self.start_game();
                 }
                 _ => {}
             }
@@ -526,7 +574,29 @@ impl PartyApp {
         }
     }
 
-    pub fn start_game(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn start_game(&mut self) {
+        let game = cur_game!(self).to_owned();
+        match game {
+            HandlerRef(handler) => {
+                if let Err(err) = self.start_handler_game(&handler) {
+                    println!("{}", err);
+                    msg("Launch Error", &format!("{err}"));
+                }
+            }
+            Executable { path, .. } => {
+                if let Err(err) = self.start_exec_game(&path) {
+                    println!("{}", err);
+                    msg("Launch Error", &format!("{err}"));
+                }
+            }
+        }
+        self.cur_page = MenuPage::Main;
+    }
+
+    pub fn start_handler_game(
+        &mut self,
+        handler: &Handler,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let _ = save_cfg(&self.options);
 
         let mut guests = GUEST_NAMES.to_vec();
@@ -539,21 +609,16 @@ impl PartyApp {
                 player.profname = self.profiles[player.profselection].to_owned();
             }
             create_profile(player.profname.as_str())?;
-            create_gamesave(player.profname.as_str(), &cur_handler!(self))?;
+            create_gamesave(player.profname.as_str(), handler)?;
         }
-        if cur_handler!(self).symlink_dir {
-            create_symlink_folder(&cur_handler!(self))?;
+        if handler.symlink_dir {
+            create_symlink_folder(handler)?;
         }
-        if cur_handler!(self).win {
+        if handler.win {
             create_proton_pfx(PATH_PARTY.join("pfx"))?;
         }
 
-        let cmd = launch_from_handler(
-            &cur_handler!(self),
-            &self.pads,
-            &self.players,
-            &self.options,
-        )?;
+        let cmd = launch_from_handler(handler, &self.pads, &self.players, &self.options)?;
         println!("\nCOMMAND:\n{}\n", cmd);
 
         kwin_dbus_start_script(PATH_RES.join("splitscreen_kwin.js"))?;
@@ -565,6 +630,23 @@ impl PartyApp {
 
         kwin_dbus_unload_script()?;
         remove_guest_profiles()?;
+
+        Ok(())
+    }
+
+    fn start_exec_game(&self, path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+        let _ = save_cfg(&self.options);
+
+        let cmd = launch_executable(path, &self.pads, &self.players, &self.options)?;
+
+        kwin_dbus_start_script(PATH_RES.join("splitscreen_kwin.js"))?;
+
+        std::process::Command::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .status()?;
+
+        kwin_dbus_unload_script()?;
 
         Ok(())
     }
