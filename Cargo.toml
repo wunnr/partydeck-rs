@@ -4,6 +4,7 @@ version = "0.2.0"
 edition = "2024"
 
 [dependencies]
+compress-tools = "0.15.1"
 dialog = "0.3.0"
 eframe = "0.31.1"
 egui_extras = { version = "0.31.1", features = ["all_loaders"] }

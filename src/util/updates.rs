@@ -1,8 +1,10 @@
-use std::error::Error;
-use std::io::ErrorKind;
 use crate::paths::*;
 
+use std::error::Error;
+
 pub fn update_umu_launcher() -> Result<(), Box<dyn Error>> {
+    use compress_tools::*;
+
     print!("Updating UMU Launcher...");
     if !PATH_RES.exists() {
         std::fs::create_dir_all(PATH_RES.clone())?;
@@ -40,13 +42,17 @@ pub fn update_umu_launcher() -> Result<(), Box<dyn Error>> {
     let mut file = std::fs::File::create(&tar_path)?;
     std::io::copy(&mut response, &mut file)?;
 
-    // Extract tar file
-    let tar_file = std::fs::File::open(&tar_path)?;
-    let mut archive = tar::Archive::new(tar_file);
-    archive.unpack(&tmp_dir)?;
+    let umu_tar = std::fs::File::open(&tar_path)?;
+    let dest_path = PATH_RES.join("umu-run");
 
-    // Copy umu-run to data directory
-    std::fs::copy(tmp_dir.join("umu/umu-run"), PATH_RES.join("umu-run"))?;
+    let mut dest_file = std::fs::File::create(&dest_path)?;
+    uncompress_archive_file(&umu_tar, &mut dest_file, "umu/umu-run")?;
+
+    // Set executable permissions
+    use std::os::unix::fs::PermissionsExt;
+    let mut perms = std::fs::metadata(&dest_path)?.permissions();
+    perms.set_mode(0o755); // rwxr-xr-x permissions
+    std::fs::set_permissions(&dest_path, perms)?;
 
     // Cleanup
     std::fs::remove_dir_all(tmp_dir)?;
@@ -55,6 +61,8 @@ pub fn update_umu_launcher() -> Result<(), Box<dyn Error>> {
 }
 
 pub fn update_goldberg_emu() -> Result<(), Box<dyn Error>> {
+    use compress_tools::*;
+
     print!("Updating Goldberg Emulator...");
     // Get latest release info from GitHub API
     let client = reqwest::blocking::Client::new();
@@ -108,32 +116,8 @@ pub fn update_goldberg_emu() -> Result<(), Box<dyn Error>> {
     }
     std::fs::create_dir_all(&linux_dest)?;
 
-    // First decompress the bz2
-    let status = std::process::Command::new("7z")
-        .arg("x")
-        .arg(&linux_path)
-        .arg(format!("-o{}", tmp_dir.display()))
-        .spawn();
-
-    if let Err(error) = status {
-        return match error.kind() {
-            ErrorKind::NotFound => Err("7z executable could not be found. Install 7z and try again".into()),
-            _ => Err("Failed to decompress Linux release".into())
-        }
-    }
-
-    // Then extract the tar
-    let tar_path = tmp_dir.join("emu-linux-release.tar");
-    let status = std::process::Command::new("tar")
-        .arg("xf")
-        .arg(&tar_path)
-        .arg("-C")
-        .arg(&linux_dest)
-        .status()?;
-
-    if !status.success() {
-        return Err("Failed to extract Linux release".into());
-    }
+    let linux_release_tar = std::fs::File::open(&linux_path)?;
+    uncompress_archive(linux_release_tar, &linux_dest, Ownership::Preserve)?;
 
     // Download and extract Windows release
     let win_path = tmp_dir.join("emu-win-release.7z");
@@ -147,15 +131,8 @@ pub fn update_goldberg_emu() -> Result<(), Box<dyn Error>> {
     }
     std::fs::create_dir_all(&win_dest)?;
 
-    let status = std::process::Command::new("7z")
-        .arg("x")
-        .arg(&win_path)
-        .arg(format!("-o{}", win_dest.display()))
-        .status()?;
-
-    if !status.success() {
-        return Err("Failed to extract Windows release".into());
-    }
+    let win_release_7z = std::fs::File::open(&win_path)?;
+    uncompress_archive(win_release_7z, &win_dest, Ownership::Preserve)?;
 
     // Cleanup
     std::fs::remove_dir_all(tmp_dir)?;
