@@ -37,7 +37,7 @@ If you're in desktop mode, simply run `partydeck-rs`. To use PartyDeck in Gaming
 
 ### Desktop Linux
 
-You'll need to install KDE Plasma, Gamescope, Bubblewrap and 7-Zip using your distro's package manager. Then, while in a KDE Plasma session, run `partydeck-rs` to get started. If you're running Steam, make sure none of the controllers are using a Steam Input desktop layout, as Steam Input causes issues such as duplicate controllers being detected.
+You'll need to install KDE Plasma, Gamescope, and Bubblewrap using your distro's package manager. Then, while in a KDE Plasma session, run `partydeck-rs` to get started. If you're running Steam, make sure none of the controllers are using a Steam Input desktop layout, as Steam Input causes issues such as duplicate controllers being detected.
 
 ### Getting Started
 
