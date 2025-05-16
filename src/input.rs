@@ -98,6 +98,7 @@ pub fn scan_evdev_gamepads() -> Vec<Gamepad> {
     pads
 }
 
+#[allow(dead_code)]
 pub fn scan_evdev_mice() -> Vec<Device> {
     let mut mice: Vec<Device> = Vec::new();
     for dev in evdev::enumerate() {
