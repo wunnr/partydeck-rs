@@ -74,7 +74,7 @@ pub fn get_rootpath(uid: &str) -> Result<String, Box<dyn Error>> {
         .set_directory(&*PATH_HOME)
         .pick_folder()
         .ok_or_else(|| "No folder selected")?;
-    let result = path.display().to_string();
+    let result = path.to_string_lossy().to_string();
 
     // Create/update the json file
     println!("Updating paths.json with {uid}: {result}");
