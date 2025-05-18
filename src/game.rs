@@ -79,9 +79,8 @@ pub fn scan_all_games() -> Vec<Game> {
 
 pub fn add_game() -> Result<(), Box<dyn Error>> {
     let file = FileDialog::new()
-        .set_title("Select Game Executable or PartyDeck Handler")
+        .set_title("Select Linux/Windows Program or PartyDeck Handler (.pdh)")
         .set_directory(&*PATH_HOME)
-        .add_filter("Linux/Windows Program or PartyDeck Handler (.pdh)", &[""])
         .pick_file();
 
     if file.is_none() {
