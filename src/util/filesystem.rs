@@ -55,17 +55,8 @@ pub fn copy_dir_recursive(
 }
 
 pub fn get_rootpath(uid: &str) -> Result<String, Box<dyn Error>> {
-    println!("Reading paths.json for root path of {uid}");
-    if let Ok(file) = File::open(PATH_PARTY.join("paths.json")) {
-        let reader = BufReader::new(file);
-        if let Ok(json) = serde_json::from_reader::<_, Value>(reader) {
-            if let Some(path) = json.get(uid) {
-                if let Some(path_str) = path.as_str() {
-                    println!("Found root path for {uid}: {path_str}");
-                    return Ok(path_str.to_string());
-                }
-            }
-        }
+    if let Some(value) = find_saved_path(uid) {
+        return value;
     }
 
     // If we didn't get a path from the file, ask user for folder
@@ -77,7 +68,13 @@ pub fn get_rootpath(uid: &str) -> Result<String, Box<dyn Error>> {
     let result = path.to_string_lossy().to_string();
 
     // Create/update the json file
-    println!("Updating paths.json with {uid}: {result}");
+    add_path(uid, &result)?;
+
+    Ok(result)
+}
+
+fn add_path(uid: &str, path: &String) -> Result<(), Box<dyn Error>> {
+    println!("Updating paths.json with {uid}: {path}");
     let mut paths = if let Ok(file) = File::open(PATH_PARTY.join("paths.json")) {
         serde_json::from_reader(BufReader::new(file))
             .unwrap_or(Value::Object(serde_json::Map::new()))
@@ -86,14 +83,29 @@ pub fn get_rootpath(uid: &str) -> Result<String, Box<dyn Error>> {
     };
 
     if let Value::Object(ref mut map) = paths {
-        map.insert(uid.to_string(), Value::String(result.clone()));
+        map.insert(uid.to_string(), Value::String(path.clone()));
         std::fs::write(
             PATH_PARTY.join("paths.json"),
             serde_json::to_string_pretty(&paths)?,
         )?;
     }
+    Ok(())
+}
 
-    Ok(result)
+fn find_saved_path(uid: &str) -> Option<Result<String, Box<dyn Error>>> {
+    println!("Reading paths.json for root path of {uid}");
+    if let Ok(file) = File::open(PATH_PARTY.join("paths.json")) {
+        let reader = BufReader::new(file);
+        if let Ok(json) = serde_json::from_reader::<_, Value>(reader) {
+            if let Some(path) = json.get(uid) {
+                if let Some(path_str) = path.as_str() {
+                    println!("Found root path for {uid}: {path_str}");
+                    return Some(Ok(path_str.to_string()));
+                }
+            }
+        }
+    }
+    None
 }
 
 pub trait SanitizePath {
