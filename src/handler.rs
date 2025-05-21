@@ -267,7 +267,7 @@ pub fn install_handler_from_file(file: &PathBuf) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn create_symlink_folder(h: &Handler) -> Result<(), Box<dyn Error>> {
-    let path_root = PathBuf::from(get_rootpath(&h.uid)?);
+    let path_root = PathBuf::from(get_rootpath_handler(&h)?);
     let path_sym = PATH_PARTY.join(format!("gamesyms/{}", h.uid));
     if path_sym.exists() {
         return Ok(());
