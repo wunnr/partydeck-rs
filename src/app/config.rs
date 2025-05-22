@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 pub struct PartyConfig {
     pub force_sdl: bool,
     pub render_scale: i32,
+    pub gamescope_sdl_backend: bool,
     pub proton_version: String,
 }
 
@@ -26,6 +27,7 @@ pub fn load_cfg() -> PartyConfig {
     PartyConfig {
         force_sdl: false,
         render_scale: 100,
+        gamescope_sdl_backend: true,
         proton_version: "".to_string(),
     }
 }

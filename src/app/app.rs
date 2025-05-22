@@ -274,11 +274,19 @@ impl PartyApp {
             egui::Slider::new(&mut self.options.render_scale, 35..=200)
                 .text("Instance resolution scale"),
         );
+        let gamescope_sdl_backend_check = ui.checkbox(
+            &mut self.options.gamescope_sdl_backend,
+            "Use SDL backend for Gamescope",
+        );
+
         if force_sdl2_check.hovered() {
             self.infotext = "Forces games to use the version of SDL2 included in the Steam Runtime. Only works on native Linux games, may fix problematic game controller support (incorrect mappings) in some games, may break others. If unsure, leave this unchecked.".to_string();
         }
         if render_scale_slider.hovered() {
             self.infotext = "PartyDeck divides each instance by a base resolution. 100% render scale = your monitor's native resolution. Lower this value to increase performance, but may cause graphical issues or even break some games. If you're using a small screen like the Steam Deck's handheld screen, increase this to 150% or higher.".to_string();
+        }
+        if gamescope_sdl_backend_check.hovered() {
+            self.infotext = "Runs gamescope sessions using the SDL backend. If unsure, leave this checked. If gamescope sessions only show a black screen or give an error (especially on Nvidia + Wayland), try disabling this.".to_string();
         }
 
         ui.horizontal(|ui| {

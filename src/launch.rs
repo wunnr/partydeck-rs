@@ -104,8 +104,13 @@ pub fn launch_from_handler(
             res_warn = false;
         }
 
+        let gsc_sdl = match cfg.gamescope_sdl_backend {
+            true => "--backend=sdl",
+            false => "",
+        };
+
         cmd.push_str(&format!(
-            "gamescope -W {gsc_width} -H {gsc_height} --backend=sdl -- "
+            "gamescope -W {gsc_width} -H {gsc_height} {gsc_sdl} -- "
         ));
         cmd.push_str(&format!(
             "bwrap --die-with-parent --dev-bind / / --tmpfs /tmp "
