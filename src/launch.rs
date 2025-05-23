@@ -4,7 +4,7 @@ use crate::app::PartyConfig;
 use crate::handler::*;
 use crate::input::*;
 use crate::paths::*;
-use crate::util::{get_instance_resolution, get_rootpath, get_screen_resolution, msg};
+use crate::util::{get_instance_resolution, get_rootpath_handler, get_screen_resolution, msg};
 
 pub fn launch_from_handler(
     h: &Handler,
@@ -22,7 +22,7 @@ pub fn launch_from_handler(
 
     let gamedir = match h.symlink_dir {
         true => format!("{party}/gamesyms/{}", h.uid),
-        false => get_rootpath(&h.uid)?,
+        false => get_rootpath_handler(&h)?,
     };
 
     let mut cmd = String::new();
