@@ -5,6 +5,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
+use crate::handler::Handler;
 
 pub fn copy_dir_recursive(
     src: &PathBuf,
@@ -54,18 +55,39 @@ pub fn copy_dir_recursive(
     Ok(())
 }
 
-pub fn get_rootpath(uid: &str) -> Result<String, Box<dyn Error>> {
-    println!("Reading paths.json for root path of {uid}");
-    if let Ok(file) = File::open(PATH_PARTY.join("paths.json")) {
-        let reader = BufReader::new(file);
-        if let Ok(json) = serde_json::from_reader::<_, Value>(reader) {
-            if let Some(path) = json.get(uid) {
-                if let Some(path_str) = path.as_str() {
-                    println!("Found root path for {uid}: {path_str}");
-                    return Ok(path_str.to_string());
+pub fn get_rootpath_handler(handler: &Handler) -> Result<String, Box<dyn Error>> {
+    if let Some(value) = find_saved_path(&handler.uid) {
+        return value;
+    }
+
+    if let Some(appid) = &handler.steam_appid {
+        if let Ok(appid_number) = str::parse::<u32>(appid) {
+            if let Some((app, library)) = steamlocate::SteamDir::locate()?.find_app(appid_number).ok().flatten() {
+                if let Some(path) = library.resolve_app_dir(&app).to_str().and_then(|s| Some(s.to_string())) {
+                    add_path(&handler.uid, &path)?;
+                    return Ok(path);
                 }
             }
         }
+    }
+
+    // If we didn't get a path from the file, ask user for folder
+    let path = FileDialog::new()
+        .set_title(format!("Locate folder for {}", handler.uid))
+        .set_directory(&*PATH_HOME)
+        .pick_folder()
+        .ok_or_else(|| "No folder selected")?;
+    let result = path.to_string_lossy().to_string();
+
+    // Create/update the json file
+    add_path(&handler.uid, &result)?;
+
+    Ok(result)
+}
+
+pub fn get_rootpath(uid: &str) -> Result<String, Box<dyn Error>> {
+    if let Some(value) = find_saved_path(uid) {
+        return value;
     }
 
     // If we didn't get a path from the file, ask user for folder
@@ -77,7 +99,13 @@ pub fn get_rootpath(uid: &str) -> Result<String, Box<dyn Error>> {
     let result = path.to_string_lossy().to_string();
 
     // Create/update the json file
-    println!("Updating paths.json with {uid}: {result}");
+    add_path(uid, &result)?;
+
+    Ok(result)
+}
+
+fn add_path(uid: &str, path: &String) -> Result<(), Box<dyn Error>> {
+    println!("Updating paths.json with {uid}: {path}");
     let mut paths = if let Ok(file) = File::open(PATH_PARTY.join("paths.json")) {
         serde_json::from_reader(BufReader::new(file))
             .unwrap_or(Value::Object(serde_json::Map::new()))
@@ -86,14 +114,29 @@ pub fn get_rootpath(uid: &str) -> Result<String, Box<dyn Error>> {
     };
 
     if let Value::Object(ref mut map) = paths {
-        map.insert(uid.to_string(), Value::String(result.clone()));
+        map.insert(uid.to_string(), Value::String(path.clone()));
         std::fs::write(
             PATH_PARTY.join("paths.json"),
             serde_json::to_string_pretty(&paths)?,
         )?;
     }
+    Ok(())
+}
 
-    Ok(result)
+fn find_saved_path(uid: &str) -> Option<Result<String, Box<dyn Error>>> {
+    println!("Reading paths.json for root path of {uid}");
+    if let Ok(file) = File::open(PATH_PARTY.join("paths.json")) {
+        let reader = BufReader::new(file);
+        if let Ok(json) = serde_json::from_reader::<_, Value>(reader) {
+            if let Some(path) = json.get(uid) {
+                if let Some(path_str) = path.as_str() {
+                    println!("Found root path for {uid}: {path_str}");
+                    return Some(Ok(path_str.to_string()));
+                }
+            }
+        }
+    }
+    None
 }
 
 pub trait SanitizePath {
