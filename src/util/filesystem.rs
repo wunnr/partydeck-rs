@@ -1,3 +1,4 @@
+use crate::handler::Handler;
 use crate::paths::*;
 use rfd::FileDialog;
 use serde_json::Value;
@@ -5,7 +6,6 @@ use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
-use crate::handler::Handler;
 
 pub fn copy_dir_recursive(
     src: &PathBuf,
@@ -62,10 +62,16 @@ pub fn get_rootpath_handler(handler: &Handler) -> Result<String, Box<dyn Error>>
 
     if let Some(appid) = &handler.steam_appid {
         if let Ok(appid_number) = str::parse::<u32>(appid) {
-            if let Some((app, library)) = steamlocate::SteamDir::locate()?.find_app(appid_number).ok().flatten() {
-                if let Some(path) = library.resolve_app_dir(&app).to_str().and_then(|s| Some(s.to_string())) {
-                    add_path(&handler.uid, &path)?;
-                    return Ok(path);
+            if let Some((app, library)) = steamlocate::SteamDir::locate()?
+                .find_app(appid_number)
+                .ok()
+                .flatten()
+            {
+                let path = library.resolve_app_dir(&app);
+                if path.exists() {
+                    let pathstr = path.to_string_lossy().to_string();
+                    add_path(&handler.uid, &pathstr)?;
+                    return Ok(pathstr);
                 }
             }
         }
