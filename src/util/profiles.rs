@@ -52,9 +52,18 @@ pub fn create_gamesave(name: &str, h: &Handler) -> Result<(), Box<dyn Error>> {
         std::fs::create_dir_all(path_gamesave.join("_config"))?;
     }
 
-    for subdir in &h.game_unique_paths {
-        println!("Creating subdirectory /{subdir}");
-        let path = path_gamesave.join(subdir);
+    for path in &h.game_unique_paths {
+        if path.is_empty() {
+            continue;
+        }
+        // If the path contains a dot, we assume it to be a file, and don't create a directory,
+        // hoping that the handler uses copy_to_profilesave to get the relevant file in there.
+        // Kind of a hacky solution since folders can technically have dots in their names.
+        if path.contains('.') {
+            continue;
+        }
+        println!("Creating subdirectory /{path}");
+        let path = path_gamesave.join(path);
         if !path.exists() {
             std::fs::create_dir_all(path)?;
         }
