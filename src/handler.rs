@@ -275,6 +275,42 @@ pub fn create_symlink_folder(h: &Handler) -> Result<(), Box<dyn Error>> {
     std::fs::create_dir_all(path_sym.to_owned())?;
     copy_dir_recursive(&path_root, &path_sym, true, false)?;
 
+    // copy_instead_paths takes symlink files and replaces them with their real equivalents
+    for path in &h.copy_instead_paths {
+        let src = path_root.join(path);
+        if !src.exists() {
+            continue;
+        }
+        let dest = path_sym.join(path);
+        println!("src: {}, dest: {}", src.display(), dest.display());
+        if src.is_dir() {
+            println!("Copying directory: {}", src.display());
+            copy_dir_recursive(&src, &dest, false, true)?;
+        } else if src.is_file() {
+            println!("Copying file: {}", src.display());
+            if dest.exists() {
+                std::fs::remove_file(&dest)?;
+            }
+            std::fs::copy(&src, &dest)?;
+        }
+    }
+    for path in &h.remove_paths {
+        let p = path_sym.join(path);
+        if !p.exists() {
+            continue;
+        }
+        if p.is_dir() {
+            std::fs::remove_dir_all(p)?;
+        } else if p.is_file() {
+            std::fs::remove_file(p)?;
+        }
+    }
+    let copypath = PathBuf::from(&h.path_handler).join("copy_to_symdir");
+    if copypath.exists() {
+        copy_dir_recursive(&copypath, &path_sym, false, true)?;
+    }
+
+    // Insert goldberg dll
     if !h.path_goldberg.is_empty() {
         let dest = match h.path_goldberg.as_str() {
             "." => path_sym.to_owned(),
@@ -339,40 +375,6 @@ pub fn create_symlink_folder(h: &Handler) -> Result<(), Box<dyn Error>> {
                 return Err("Generate interfaces failed".into());
             }
         }
-    }
-    // copy_instead_paths takes symlink files and replaces them with their real equivalents
-    for path in &h.copy_instead_paths {
-        let src = path_root.join(path);
-        if !src.exists() {
-            continue;
-        }
-        let dest = path_sym.join(path);
-        println!("src: {}, dest: {}", src.display(), dest.display());
-        if src.is_dir() {
-            println!("Copying directory: {}", src.display());
-            copy_dir_recursive(&src, &dest, false, true)?;
-        } else if src.is_file() {
-            println!("Copying file: {}", src.display());
-            if dest.exists() {
-                std::fs::remove_file(&dest)?;
-            }
-            std::fs::copy(&src, &dest)?;
-        }
-    }
-    for path in &h.remove_paths {
-        let p = path_sym.join(path);
-        if !p.exists() {
-            continue;
-        }
-        if p.is_dir() {
-            std::fs::remove_dir_all(p)?;
-        } else if p.is_file() {
-            std::fs::remove_file(p)?;
-        }
-    }
-    let copypath = PathBuf::from(&h.path_handler).join("copy_to_symdir");
-    if copypath.exists() {
-        copy_dir_recursive(&copypath, &path_sym, false, true)?;
     }
 
     Ok(())
