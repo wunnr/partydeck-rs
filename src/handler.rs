@@ -113,14 +113,15 @@ impl Handler {
                 })
                 .unwrap_or_default(),
 
-            path_goldberg: json["goldberg.path"]
+            path_goldberg: json["steam.path"]
                 .as_str()
                 .unwrap_or_default()
                 .to_string()
                 .sanitize_path(),
-            steam_appid: json["goldberg.appid"]
-                .as_str().and_then(|s| Some(s.to_string())),
-            coldclient: json["goldberg.coldclient"].as_bool().unwrap_or_default(),
+            steam_appid: json["steam.appid"]
+                .as_str()
+                .and_then(|s| Some(s.to_string())),
+            coldclient: json["steam.gb_coldclient"].as_bool().unwrap_or_default(),
 
             win_unique_appdata: json["profiles.unique_appdata"]
                 .as_bool()
@@ -326,10 +327,7 @@ pub fn create_symlink_folder(h: &Handler) -> Result<(), Box<dyn Error>> {
             "[user::saves]\nlocal_save_path=./goldbergsave",
         )?;
         if let Some(appid) = &h.steam_appid {
-            std::fs::write(
-                steam_settings.join("steam_appid.txt"),
-                appid.as_str(),
-            )?;
+            std::fs::write(steam_settings.join("steam_appid.txt"), appid.as_str())?;
         }
 
         // If the game uses goldberg coldclient, assume the handler owner has set up coldclient in the copy_to_symdir files
