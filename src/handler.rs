@@ -113,7 +113,7 @@ impl Handler {
                 })
                 .unwrap_or_default(),
 
-            path_goldberg: json["steam.path"]
+            path_goldberg: json["steam.api_path"]
                 .as_str()
                 .unwrap_or_default()
                 .to_string()
