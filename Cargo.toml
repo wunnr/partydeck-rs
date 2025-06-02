@@ -1,6 +1,6 @@
 [package]
 name = "partydeck-rs"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2024"
 
 [dependencies]
@@ -23,3 +23,4 @@ x11rb = "0.13.1"
 zbus = "5.5.0"
 zip = "2.6.1"
 steamlocate = "2.0.1"
+semver = "1.0.26"
