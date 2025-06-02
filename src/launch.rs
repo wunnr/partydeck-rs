@@ -30,6 +30,7 @@ pub fn launch_from_handler(
     cmd.push_str("export ");
     cmd.push_str("SDL_JOYSTICK_HIDAPI=0 ");
     cmd.push_str("ENABLE_GAMESCOPE_WSI=0 ");
+    cmd.push_str("PROTON_DISABLE_HIDRAW=1 ");
 
     if cfg.force_sdl && !h.win {
         let path_sdl = match h.is32bit {
