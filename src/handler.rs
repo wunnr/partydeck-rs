@@ -295,7 +295,7 @@ pub fn create_symlink_folder(h: &Handler) -> Result<(), Box<dyn Error>> {
             std::fs::copy(&src, &dest)?;
         }
     }
-    for path in &h.remove_paths {
+    for path in h.remove_paths.iter().chain(h.game_unique_paths.iter()) {
         let p = path_sym.join(path);
         if !p.exists() {
             continue;
