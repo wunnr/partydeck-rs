@@ -1,11 +1,7 @@
 use dialog::{Choice, DialogBox};
 use std::error::Error;
 use std::path::PathBuf;
-use std::thread::sleep;
-use std::time::Duration;
 use x11rb::connection::Connection;
-
-use crate::paths::*;
 
 pub fn msg(title: &str, contents: &str) {
     let _ = dialog::Message::new(contents).title(title).show();
@@ -75,37 +71,6 @@ pub fn get_instance_resolution(
     };
     println!("Resolution for instance {}/{playercount}: {w}x{h}", i + 1);
     return (w, h);
-}
-
-pub fn create_proton_pfx(pfx: PathBuf) -> Result<(), Box<dyn Error>> {
-    if pfx.exists() {
-        println!("Prefix {} exists, continuing...", pfx.display());
-        return Ok(());
-    }
-
-    println!("Creating prefix {}...", pfx.display());
-    let umu = PATH_RES.join("umu-run");
-    let reg = PATH_RES.join("wine_disable_hidraw.reg");
-    let hidrawpatch = format!(
-        "WINEPREFIX=\"{}\" \"{}\" regedit \"{}\"",
-        pfx.display(),
-        umu.display(),
-        reg.display()
-    );
-
-    println!("Disabling hidraw in the wine prefix.....");
-    let patchcmd = std::process::Command::new("sh")
-        .arg("-c")
-        .arg(&hidrawpatch)
-        .status()?;
-    if !patchcmd.success() {
-        return Err("Failed to disable hidraw in the wine prefix".into());
-    }
-
-    sleep(Duration::from_secs(5));
-
-    println!("Done.");
-    Ok(())
 }
 
 // Sends the splitscreen script to the active KWin session through DBus

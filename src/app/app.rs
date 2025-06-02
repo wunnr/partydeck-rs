@@ -639,9 +639,6 @@ impl PartyApp {
         if handler.symlink_dir {
             create_symlink_folder(handler)?;
         }
-        if handler.win {
-            create_proton_pfx(PATH_PARTY.join("pfx"))?;
-        }
 
         let cmd = launch_from_handler(handler, &self.pads, &self.players, &self.options)?;
         println!("\nCOMMAND:\n{}\n", cmd);

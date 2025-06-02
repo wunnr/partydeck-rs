@@ -12,7 +12,7 @@ pub use filesystem::{SanitizePath, copy_dir_recursive, get_rootpath, get_rootpat
 
 // Re-export functions from launcher
 pub use sys::{
-    create_proton_pfx, get_instance_resolution, get_screen_resolution, kwin_dbus_start_script,
+    get_instance_resolution, get_screen_resolution, kwin_dbus_start_script,
     kwin_dbus_unload_script, msg, yesno,
 };
 
