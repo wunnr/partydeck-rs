@@ -20,6 +20,7 @@ pub enum MenuPage {
 }
 
 pub struct PartyApp {
+    pub needs_update: bool,
     pub options: PartyConfig,
     pub cur_page: MenuPage,
     pub infotext: String,
@@ -39,6 +40,7 @@ macro_rules! cur_game {
 impl Default for PartyApp {
     fn default() -> Self {
         Self {
+            needs_update: check_for_partydeck_update(),
             options: load_cfg(),
             cur_page: MenuPage::Main,
             infotext: String::new(),
@@ -133,8 +135,12 @@ impl PartyApp {
                 if ui.button("❌ Quit").clicked() {
                     ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
                 }
+                let version_label = match self.needs_update {
+                    true => format!("v{} (Update Available)", env!("CARGO_PKG_VERSION")),
+                    false => format!("v{}", env!("CARGO_PKG_VERSION")),
+                };
                 ui.hyperlink_to(
-                    format!("v{}", env!("CARGO_PKG_VERSION")),
+                    version_label,
                     "https://github.com/wunnr/partydeck-rs/releases",
                 );
                 ui.add(egui::Separator::default().vertical());
