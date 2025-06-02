@@ -238,6 +238,17 @@ impl PartyApp {
                             }
                             refresh_games = true;
                         }
+                        if let HandlerRef(h) = game {
+                            if ui.button("Open Handler Folder").clicked() {
+                                if let Err(_) = std::process::Command::new("sh")
+                                    .arg("-c")
+                                    .arg(format!("xdg-open {}", h.path_handler.display()))
+                                    .status()
+                                {
+                                    msg("Error", "Couldn't open handler folder!");
+                                }
+                            }
+                        }
                     },
                 );
 
@@ -349,7 +360,7 @@ impl PartyApp {
                     .arg(format!("xdg-open {}/", PATH_PARTY.display()))
                     .status()
                 {
-                    msg("Error", "Couldn't open paths.json!");
+                    msg("Error", "Couldn't open PartyDeck Data Folder!");
                 }
             }
             if ui.button("Edit game paths").clicked() {
