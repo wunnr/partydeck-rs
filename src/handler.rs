@@ -346,7 +346,7 @@ pub fn create_symlink_folder(h: &Handler) -> Result<(), Box<dyn Error>> {
             copy_dir_recursive(&src, &dest, false, true)?;
 
             let path_steamdll = match h.path_goldberg.as_str() {
-                "/" => path_root.to_owned(),
+                "." => path_root.to_owned(),
                 _ => path_root.join(&h.path_goldberg),
             };
             let steamdll = match &h.win {
