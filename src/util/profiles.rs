@@ -40,7 +40,9 @@ pub fn create_gamesave(name: &str, h: &Handler) -> Result<(), Box<dyn Error>> {
     println!("Creating game save {} for {}", h.uid, name);
 
     if h.win_unique_appdata {
-        std::fs::create_dir_all(path_gamesave.join("_AppData"))?;
+        std::fs::create_dir_all(path_gamesave.join("_AppData/Local"))?;
+        std::fs::create_dir_all(path_gamesave.join("_AppData/LocalLow"))?;
+        std::fs::create_dir_all(path_gamesave.join("_AppData/Roaming"))?;
     }
     if h.win_unique_documents {
         std::fs::create_dir_all(path_gamesave.join("_Documents"))?;
