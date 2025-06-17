@@ -39,10 +39,17 @@ pub fn get_instance_resolution(
     i: usize,
     basewidth: u32,
     baseheight: u32,
+    two_player_vertical: bool,
 ) -> (u32, u32) {
     let (w, h) = match playercount {
         1 => (basewidth, baseheight),
-        2 => (basewidth, baseheight / 2),
+        2 => {
+            if two_player_vertical {
+                (basewidth / 2, baseheight)
+            } else {
+                (basewidth, baseheight / 2)
+            }
+        }
         3 => {
             if i == 0 {
                 (basewidth, baseheight / 2)
