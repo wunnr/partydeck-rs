@@ -155,12 +155,11 @@ pub fn launch_from_handler(
             ));
         }
         // Mask out any gamepads that aren't this player's
+        // Also mask out all Steam Input gamepads
         for (i, pad) in all_pads.iter().enumerate() {
-            if p.pad_index == i {
-                continue;
-            } else {
+            if pad.vendor() == 0x28de || p.pad_index != i {
                 let path = pad.path();
-                binds.push_str(&format!("--bind /dev/null {path} "))
+                binds.push_str(&format!("--bind /dev/null {path} "));
             }
         }
 

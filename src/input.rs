@@ -75,6 +75,12 @@ impl Gamepad {
         }
         btn
     }
+    pub fn vendor(&self) -> u16 {
+        self.dev.input_id().vendor()
+    }
+    pub fn product(&self) -> u16 {
+        self.dev.input_id().product()
+    }
 }
 
 pub fn scan_evdev_gamepads() -> Vec<Gamepad> {
