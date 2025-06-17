@@ -523,6 +523,9 @@ impl PartyApp {
     fn handle_gamepad_gui(&mut self, raw_input: &mut egui::RawInput) {
         let mut key: Option<egui::Key> = None;
         for pad in &mut self.pads {
+            if pad.vendor() == 0x28de {
+                continue;
+            }
             match pad.poll() {
                 Some(PadButton::ABtn) => {
                     key = Some(Key::Enter);
@@ -571,6 +574,9 @@ impl PartyApp {
     fn handle_gamepad_players(&mut self) {
         for (i, pad) in self.pads.iter_mut().enumerate() {
             if is_pad_in_players(i, &self.players) {
+                continue;
+            }
+            if pad.vendor() == 0x28de {
                 continue;
             }
             match pad.poll() {
