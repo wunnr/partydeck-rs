@@ -6,9 +6,38 @@ use crate::input::*;
 use crate::paths::*;
 use crate::util::{get_instance_resolution, get_rootpath_handler, get_screen_resolution, msg};
 
-pub fn launch_from_handler(
+#[derive(Clone)]
+pub struct PadInfo {
+    pub path: String,
+    pub vendor: u16,
+}
+
+pub trait PadRef {
+    fn path(&self) -> &str;
+    fn vendor(&self) -> u16;
+}
+
+impl PadRef for Gamepad {
+    fn path(&self) -> &str {
+        self.path()
+    }
+    fn vendor(&self) -> u16 {
+        self.vendor()
+    }
+}
+
+impl PadRef for PadInfo {
+    fn path(&self) -> &str {
+        &self.path
+    }
+    fn vendor(&self) -> u16 {
+        self.vendor
+    }
+}
+
+pub fn launch_from_handler<P: PadRef>(
     h: &Handler,
-    all_pads: &Vec<Gamepad>,
+    all_pads: &[P],
     players: &Vec<Player>,
     cfg: &PartyConfig,
 ) -> Result<String, Box<dyn std::error::Error>> {
@@ -155,7 +184,6 @@ pub fn launch_from_handler(
             ));
         }
         // Mask out any gamepads that aren't this player's
-        // Also mask out all Steam Input gamepads
         for (i, pad) in all_pads.iter().enumerate() {
             if pad.vendor() == 0x28de || p.pad_index != i {
                 let path = pad.path();
@@ -192,9 +220,9 @@ pub fn launch_from_handler(
     Ok(cmd)
 }
 
-pub fn launch_executable(
+pub fn launch_executable<P: PadRef>(
     exec_path: &PathBuf,
-    all_pads: &Vec<Gamepad>,
+    all_pads: &[P],
     players: &Vec<Player>,
     cfg: &PartyConfig,
 ) -> Result<String, Box<dyn std::error::Error>> {
@@ -268,11 +296,9 @@ pub fn launch_executable(
 
         // Mask out any gamepads that aren't this player's
         for (i, pad) in all_pads.iter().enumerate() {
-            if p.pad_index == i {
-                continue;
-            } else {
+            if pad.vendor() == 0x28de || p.pad_index != i {
                 let path = pad.path();
-                binds.push_str(&format!("--bind /dev/null {path} "))
+                binds.push_str(&format!("--bind /dev/null {path} "));
             }
         }
 

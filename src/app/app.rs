@@ -2,7 +2,7 @@ use crate::app::config::*;
 use crate::game::{Game::*, *};
 use crate::handler::*;
 use crate::input::*;
-use crate::launch::{launch_executable, launch_from_handler};
+use crate::launch::{PadInfo, launch_executable, launch_from_handler};
 use crate::paths::*;
 use crate::util::*;
 
@@ -29,6 +29,10 @@ pub struct PartyApp {
     pub games: Vec<Game>,
     pub profiles: Vec<String>,
     pub selected_game: usize,
+    pub loading_msg: Option<String>,
+    pub loading_since: Option<std::time::Instant>,
+    #[allow(dead_code)]
+    pub task: Option<std::thread::JoinHandle<()>>,
 }
 
 macro_rules! cur_game {
@@ -49,6 +53,9 @@ impl Default for PartyApp {
             games: scan_all_games(),
             profiles: Vec::new(),
             selected_game: 0,
+            loading_msg: None,
+            loading_since: None,
+            task: None,
         }
     }
 }
@@ -62,6 +69,7 @@ impl eframe::App for PartyApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.check_dependencies();
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             self.display_top_panel(ui);
         });
@@ -91,11 +99,79 @@ impl eframe::App for PartyApp {
                 self.display_page_players(ui);
             }
         });
+        if let Some(handle) = self.task.take() {
+            if handle.is_finished() {
+                let _ = handle.join();
+                self.loading_since = None;
+                self.loading_msg = None;
+            } else {
+                self.task = Some(handle);
+            }
+        }
+        if let Some(start) = self.loading_since {
+            if start.elapsed() > std::time::Duration::from_secs(60) {
+                // Give up waiting after one minute
+                self.loading_msg = Some("Operation timed out".to_string());
+            }
+        }
+        if let Some(msg) = &self.loading_msg {
+            egui::Area::new("loading".into())
+                .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+                .interactable(false)
+                .show(ctx, |ui| {
+                    egui::Frame::NONE
+                        .fill(egui::Color32::from_rgba_premultiplied(0, 0, 0, 192))
+                        .corner_radius(6.0)
+                        .inner_margin(egui::Margin::symmetric(16, 12))
+                        .show(ui, |ui| {
+                            ui.vertical_centered(|ui| {
+                                ui.add(egui::widgets::Spinner::new().size(40.0));
+                                ui.add_space(8.0);
+                                ui.label(msg);
+                            });
+                        });
+                });
+        }
         ctx.request_repaint_after(std::time::Duration::from_millis(33)); // 30 fps
     }
 }
 
 impl PartyApp {
+    fn spawn_task<F>(&mut self, msg: &str, f: F)
+    where
+        F: FnOnce() + Send + 'static,
+    {
+        self.loading_msg = Some(msg.to_string());
+        self.loading_since = Some(std::time::Instant::now());
+        self.task = Some(std::thread::spawn(f));
+    }
+
+    fn check_dependencies(&mut self) {
+        if self.task.is_some() {
+            return;
+        }
+
+        if !PATH_RES.join("umu-run").exists() {
+            self.spawn_task("Downloading UMU Launcher...", || {
+                if let Err(e) = update_umu_launcher() {
+                    println!("Failed to download UMU Launcher: {}", e);
+                    msg("Error", &format!("Failed to download UMU Launcher: {}", e));
+                    let _ = std::fs::remove_file(PATH_RES.join("umu-run"));
+                }
+            });
+        } else if !PATH_RES.join("goldberg_linux").exists()
+            || !PATH_RES.join("goldberg_win").exists()
+        {
+            self.spawn_task("Downloading Goldberg Steam Emu...", || {
+                if let Err(e) = update_goldberg_emu() {
+                    println!("Failed to download Goldberg: {}", e);
+                    msg("Error", &format!("Failed to download Goldberg: {}", e));
+                    let _ = std::fs::remove_dir_all(PATH_RES.join("goldberg_linux"));
+                    let _ = std::fs::remove_dir_all(PATH_RES.join("goldberg_win"));
+                }
+            });
+        }
+    }
     fn display_top_panel(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             if ui
@@ -357,14 +433,18 @@ impl PartyApp {
 
         ui.horizontal(|ui| {
             if ui.button("Update Goldberg Steam Emu").clicked() {
-                if let Err(err) = update_goldberg_emu() {
-                    msg("Error", &format!("Couldn't update: {}", err));
-                }
+                self.spawn_task("Updating Goldberg Steam Emu...", || {
+                    if let Err(err) = update_goldberg_emu() {
+                        msg("Error", &format!("Couldn't update: {}", err));
+                    }
+                });
             }
             if ui.button("Update UMU Launcher").clicked() {
-                if let Err(err) = update_umu_launcher() {
-                    msg("Error", &format!("Couldn't update: {}", err));
-                }
+                self.spawn_task("Updating UMU Launcher...", || {
+                    if let Err(err) = update_umu_launcher() {
+                        msg("Error", &format!("Couldn't update: {}", err));
+                    }
+                });
             }
         });
 
@@ -616,31 +696,9 @@ impl PartyApp {
 
     pub fn start_game(&mut self) {
         let game = cur_game!(self).to_owned();
-        match game {
-            HandlerRef(handler) => {
-                if let Err(err) = self.start_handler_game(&handler) {
-                    println!("{}", err);
-                    msg("Launch Error", &format!("{err}"));
-                }
-            }
-            Executable { path, .. } => {
-                if let Err(err) = self.start_exec_game(&path) {
-                    println!("{}", err);
-                    msg("Launch Error", &format!("{err}"));
-                }
-            }
-        }
-        self.cur_page = MenuPage::Main;
-    }
-
-    pub fn start_handler_game(
-        &mut self,
-        handler: &Handler,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let _ = save_cfg(&self.options);
-
+        let mut players = self.players.clone();
         let mut guests = GUEST_NAMES.to_vec();
-        for player in &mut self.players {
+        for player in &mut players {
             if player.profselection == 0 {
                 let i = fastrand::usize(..guests.len());
                 player.profname = format!(".{}", guests[i]);
@@ -648,54 +706,33 @@ impl PartyApp {
             } else {
                 player.profname = self.profiles[player.profselection].to_owned();
             }
-            create_profile(player.profname.as_str())?;
-            create_gamesave(player.profname.as_str(), handler)?;
         }
-        if handler.symlink_dir {
-            create_symlink_folder(handler)?;
-        }
-
-        let cmd = launch_from_handler(handler, &self.pads, &self.players, &self.options)?;
-        println!("\nCOMMAND:\n{}\n", cmd);
-
-        let script = if self.players.len() == 2 && self.options.vertical_two_player {
-            "splitscreen_kwin_vertical.js"
-        } else {
-            "splitscreen_kwin.js"
-        };
-        kwin_dbus_start_script(PATH_RES.join(script))?;
-
-        std::process::Command::new("sh")
-            .arg("-c")
-            .arg(cmd)
-            .status()?;
-
-        kwin_dbus_unload_script()?;
-        remove_guest_profiles()?;
-
-        Ok(())
-    }
-
-    fn start_exec_game(&self, path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
-        let _ = save_cfg(&self.options);
-
-        let cmd = launch_executable(path, &self.pads, &self.players, &self.options)?;
-
-        let script = if self.players.len() == 2 && self.options.vertical_two_player {
-            "splitscreen_kwin_vertical.js"
-        } else {
-            "splitscreen_kwin.js"
-        };
-        kwin_dbus_start_script(PATH_RES.join(script))?;
-
-        std::process::Command::new("sh")
-            .arg("-c")
-            .arg(cmd)
-            .status()?;
-
-        kwin_dbus_unload_script()?;
-
-        Ok(())
+        let pad_infos: Vec<PadInfo> = self
+            .pads
+            .iter()
+            .map(|p| PadInfo {
+                path: p.path().to_string(),
+                vendor: p.vendor(),
+            })
+            .collect();
+        let cfg = self.options.clone();
+        self.cur_page = MenuPage::Main;
+        self.spawn_task("Launching...", move || match game {
+            HandlerRef(handler) => {
+                if let Err(err) =
+                    run_handler_game(handler, players.clone(), pad_infos.clone(), cfg.clone())
+                {
+                    println!("{}", err);
+                    msg("Launch Error", &format!("{err}"));
+                }
+            }
+            Executable { path, .. } => {
+                if let Err(err) = run_exec_game(path, players, pad_infos, cfg) {
+                    println!("{}", err);
+                    msg("Launch Error", &format!("{err}"));
+                }
+            }
+        });
     }
 }
 
@@ -704,3 +741,67 @@ static GUEST_NAMES: [&str; 21] = [
     "Madeline", "Theo", "Yokatta", "Wyrm", "Brodiee", "Supreme", "Conk", "Gort", "Lich", "Smores",
     "Canary",
 ];
+
+fn run_handler_game(
+    handler: Handler,
+    players: Vec<Player>,
+    pad_infos: Vec<PadInfo>,
+    cfg: PartyConfig,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let _ = save_cfg(&cfg);
+
+    for player in &players {
+        create_profile(player.profname.as_str())?;
+        create_gamesave(player.profname.as_str(), &handler)?;
+    }
+    if handler.symlink_dir {
+        create_symlink_folder(&handler)?;
+    }
+
+    let cmd = launch_from_handler(&handler, &pad_infos, &players, &cfg)?;
+    println!("\nCOMMAND:\n{}\n", cmd);
+
+    let script = if players.len() == 2 && cfg.vertical_two_player {
+        "splitscreen_kwin_vertical.js"
+    } else {
+        "splitscreen_kwin.js"
+    };
+    kwin_dbus_start_script(PATH_RES.join(script))?;
+
+    std::process::Command::new("sh")
+        .arg("-c")
+        .arg(cmd)
+        .status()?;
+
+    kwin_dbus_unload_script()?;
+    remove_guest_profiles()?;
+
+    Ok(())
+}
+
+fn run_exec_game(
+    path: PathBuf,
+    players: Vec<Player>,
+    pad_infos: Vec<PadInfo>,
+    cfg: PartyConfig,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let _ = save_cfg(&cfg);
+
+    let cmd = launch_executable(&path, &pad_infos, &players, &cfg)?;
+
+    let script = if players.len() == 2 && cfg.vertical_two_player {
+        "splitscreen_kwin_vertical.js"
+    } else {
+        "splitscreen_kwin.js"
+    };
+    kwin_dbus_start_script(PATH_RES.join(script))?;
+
+    std::process::Command::new("sh")
+        .arg("-c")
+        .arg(cmd)
+        .status()?;
+
+    kwin_dbus_unload_script()?;
+
+    Ok(())
+}
