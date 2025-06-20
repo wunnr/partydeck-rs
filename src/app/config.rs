@@ -6,7 +6,7 @@ use std::io::BufReader;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PartyConfig {
     pub force_sdl: bool,
     pub render_scale: i32,

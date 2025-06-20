@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct Player {
     pub pad_index: usize,
     pub profname: String,
@@ -77,9 +78,6 @@ impl Gamepad {
     }
     pub fn vendor(&self) -> u16 {
         self.dev.input_id().vendor()
-    }
-    pub fn product(&self) -> u16 {
-        self.dev.input_id().product()
     }
 }
 
