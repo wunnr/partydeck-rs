@@ -71,32 +71,43 @@ impl eframe::App for PartyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.check_dependencies();
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            if self.task.is_some() {
+                ui.disable();
+            }
             self.display_top_panel(ui);
         });
         egui::SidePanel::left("games_panel")
             .resizable(false)
             .exact_width(200.0)
             .show(ctx, |ui| {
+                if self.task.is_some() {
+                    ui.disable();
+                }
                 self.display_games_panel(ui);
             });
         if (self.cur_page != MenuPage::Main) && (self.cur_page != MenuPage::Players) {
             self.display_info_panel(ctx);
         }
-        egui::CentralPanel::default().show(ctx, |ui| match self.cur_page {
-            MenuPage::Main => {
-                self.display_page_main(ui);
+        egui::CentralPanel::default().show(ctx, |ui| {
+            if self.task.is_some() {
+                ui.disable();
             }
-            MenuPage::Settings => {
-                self.display_page_settings(ui);
-            }
-            MenuPage::Profiles => {
-                self.display_page_profiles(ui);
-            }
-            MenuPage::Game => {
-                self.display_page_game(ui);
-            }
-            MenuPage::Players => {
-                self.display_page_players(ui);
+            match self.cur_page {
+                MenuPage::Main => {
+                    self.display_page_main(ui);
+                }
+                MenuPage::Settings => {
+                    self.display_page_settings(ui);
+                }
+                MenuPage::Profiles => {
+                    self.display_page_profiles(ui);
+                }
+                MenuPage::Game => {
+                    self.display_page_game(ui);
+                }
+                MenuPage::Players => {
+                    self.display_page_players(ui);
+                }
             }
         });
         if let Some(handle) = self.task.take() {
@@ -261,6 +272,9 @@ impl PartyApp {
         egui::TopBottomPanel::bottom("info_panel")
             .exact_height(100.0)
             .show(ctx, |ui| {
+                if self.task.is_some() {
+                    ui.disable();
+                }
                 match self.cur_page {
                     MenuPage::Game => {
                         match cur_game!(self){
