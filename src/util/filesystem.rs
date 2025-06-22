@@ -158,8 +158,11 @@ impl SanitizePath for String {
         let mut sanitized = self.clone();
 
         // Remove potentially dangerous characters
+        // Allow single quotes in paths since they are quoted when launching
+        // commands. Double quotes would break the quoting though, so we still
+        // strip those along with other potentially dangerous characters.
         let chars_to_sanitize = [
-            ';', '&', '|', '$', '`', '(', ')', '<', '>', '\'', '"', '\\', '/',
+            ';', '&', '|', '$', '`', '(', ')', '<', '>', '"', '\\', '/',
         ];
 
         if chars_to_sanitize.iter().any(|&c| sanitized.contains(c)) {
@@ -173,7 +176,6 @@ impl SanitizePath for String {
                 .replace(")", "")
                 .replace("<", "")
                 .replace(">", "")
-                .replace("'", "")
                 .replace("\"", "")
                 .replace("\\", "/") // Convert Windows backslashes to forward slashes
                 .replace("//", "/"); // Remove any doubled slashes
