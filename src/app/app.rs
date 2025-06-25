@@ -43,12 +43,14 @@ macro_rules! cur_game {
 
 impl Default for PartyApp {
     fn default() -> Self {
+        let opts = load_cfg();
+        let pads = scan_evdev_gamepads(&opts.pad_filter_type);
         Self {
             needs_update: check_for_partydeck_update(),
-            options: load_cfg(),
+            options: opts,
             cur_page: MenuPage::Main,
             infotext: String::new(),
-            pads: scan_evdev_gamepads(),
+            pads,
             players: Vec::new(),
             games: scan_all_games(),
             profiles: Vec::new(),
@@ -216,7 +218,7 @@ impl PartyApp {
             if ui.button("🎮 Rescan").clicked() {
                 self.players.clear();
                 self.pads.clear();
-                self.pads = scan_evdev_gamepads();
+                self.pads = scan_evdev_gamepads(&self.options.pad_filter_type);
             }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("❌ Quit").clicked() {
@@ -406,6 +408,34 @@ impl PartyApp {
         }
 
         ui.horizontal(|ui| {
+            let filter_label = ui.label("Controller filter");
+            let r1 = ui.radio_value(
+                &mut self.options.pad_filter_type,
+                PadFilterType::All,
+                "All controllers",
+            );
+            let r2 = ui.radio_value(
+                &mut self.options.pad_filter_type,
+                PadFilterType::NoSteamInput,
+                "No Steam Input",
+            );
+            let r3 = ui.radio_value(
+                &mut self.options.pad_filter_type,
+                PadFilterType::OnlySteamInput,
+                "Only Steam Input",
+            );
+
+            if filter_label.hovered() || r1.hovered() || r2.hovered() || r3.hovered() {
+                self.infotext = "Select which controllers to filter out. If unsure, set this to \"No Steam Input\". If you use Steam Input to remap controllers, you may want to select \"Only Steam Input\".".to_string();
+            }
+
+            if r1.clicked() || r2.clicked() || r3.clicked() {
+                self.pads.clear();
+                self.pads = scan_evdev_gamepads(&self.options.pad_filter_type);
+            }
+        });
+
+        ui.horizontal(|ui| {
         let proton_ver_label = ui.label("Proton version");
         let proton_ver_editbox = ui.add(
             egui::TextEdit::singleline(&mut self.options.proton_version)
@@ -573,6 +603,18 @@ impl PartyApp {
     }
 
     fn display_page_players(&mut self, ui: &mut Ui) {
+        ui.heading("Controllers");
+        ui.separator();
+
+        for pad in self.pads.iter() {
+            ui.add_enabled(
+                pad.enabled(),
+                egui::Label::new(format!("🎮 {} ({})", pad.fancyname(), pad.path())),
+            );
+        }
+
+        ui.separator();
+
         ui.heading("Players");
         ui.separator();
 
@@ -617,7 +659,7 @@ impl PartyApp {
     fn handle_gamepad_gui(&mut self, raw_input: &mut egui::RawInput) {
         let mut key: Option<egui::Key> = None;
         for pad in &mut self.pads {
-            if pad.vendor() == 0x28de {
+            if !pad.enabled() {
                 continue;
             }
             match pad.poll() {
@@ -667,10 +709,7 @@ impl PartyApp {
 
     fn handle_gamepad_players(&mut self) {
         for (i, pad) in self.pads.iter_mut().enumerate() {
-            if is_pad_in_players(i, &self.players) {
-                continue;
-            }
-            if pad.vendor() == 0x28de {
+            if !pad.enabled() || is_pad_in_players(i, &self.players) {
                 continue;
             }
             match pad.poll() {
@@ -727,6 +766,7 @@ impl PartyApp {
             .map(|p| PadInfo {
                 path: p.path().to_string(),
                 vendor: p.vendor(),
+                enabled: p.enabled(),
             })
             .collect();
         let cfg = self.options.clone();
