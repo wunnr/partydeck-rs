@@ -426,7 +426,7 @@ impl PartyApp {
             );
 
             if filter_label.hovered() || r1.hovered() || r2.hovered() || r3.hovered() {
-                self.infotext = "Select which controllers to filter out. If unsure, set this to \"No Steam Input\". If you use Steam Input to remap controllers, you may want to select \"Only Steam Input\".".to_string();
+                self.infotext = "Select which controllers to filter out. If unsure, set this to \"No Steam Input\". If you use Steam Input to remap controllers, you may want to select \"Only Steam Input\", but be warned that this option is experimental and is known to break certain Proton games.".to_string();
             }
 
             if r1.clicked() || r2.clicked() || r3.clicked() {
