@@ -447,6 +447,24 @@ impl PartyApp {
         });
 
         ui.horizontal(|ui| {
+            ui.label("Update/Redownload Dependencies");
+            if ui.button("Goldberg Steam Emu").clicked() {
+                self.spawn_task("Updating Goldberg Steam Emu...", || {
+                    if let Err(err) = update_goldberg_emu() {
+                        msg("Error", &format!("Couldn't update: {}", err));
+                    }
+                });
+            }
+            if ui.button("UMU Launcher").clicked() {
+                self.spawn_task("Updating UMU Launcher...", || {
+                    if let Err(err) = update_umu_launcher() {
+                        msg("Error", &format!("Couldn't update: {}", err));
+                    }
+                });
+            }
+        });
+
+        ui.horizontal(|ui| {
         if ui.button("Erase Proton Prefix").clicked() {
             if yesno("Erase Prefix?", "This will erase the Wine prefix used by PartyDeck. This shouldn't erase profile/game-specific data, but exercise caution. Are you sure?") && PATH_PARTY.join("gamesyms").exists() {
                 if let Err(err) = std::fs::remove_dir_all(PATH_PARTY.join("pfx")) {
@@ -460,6 +478,7 @@ impl PartyApp {
                 }
             }
         }
+
         if ui.button("Erase Symlink Data").clicked() {
             if yesno("Erase Symlink Data?", "This will erase all game symlink data. This shouldn't erase profile/game-specific data, but exercise caution. Are you sure?") && PATH_PARTY.join("gamesyms").exists() {
                 if let Err(err) = std::fs::remove_dir_all(PATH_PARTY.join("gamesyms")) {
@@ -473,23 +492,6 @@ impl PartyApp {
                 }
             }
         }
-        });
-
-        ui.horizontal(|ui| {
-            if ui.button("Update Goldberg Steam Emu").clicked() {
-                self.spawn_task("Updating Goldberg Steam Emu...", || {
-                    if let Err(err) = update_goldberg_emu() {
-                        msg("Error", &format!("Couldn't update: {}", err));
-                    }
-                });
-            }
-            if ui.button("Update UMU Launcher").clicked() {
-                self.spawn_task("Updating UMU Launcher...", || {
-                    if let Err(err) = update_umu_launcher() {
-                        msg("Error", &format!("Couldn't update: {}", err));
-                    }
-                });
-            }
         });
 
         ui.horizontal(|ui| {
