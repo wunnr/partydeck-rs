@@ -10,11 +10,13 @@ use crate::util::{get_instance_resolution, get_rootpath_handler, get_screen_reso
 pub struct PadInfo {
     pub path: String,
     pub vendor: u16,
+    pub enabled: bool,
 }
 
 pub trait PadRef {
     fn path(&self) -> &str;
     fn vendor(&self) -> u16;
+    fn enabled(&self) -> bool;
 }
 
 impl PadRef for Gamepad {
@@ -24,6 +26,9 @@ impl PadRef for Gamepad {
     fn vendor(&self) -> u16 {
         self.vendor()
     }
+    fn enabled(&self) -> bool {
+        self.enabled()
+    }
 }
 
 impl PadRef for PadInfo {
@@ -32,6 +37,9 @@ impl PadRef for PadInfo {
     }
     fn vendor(&self) -> u16 {
         self.vendor
+    }
+    fn enabled(&self) -> bool {
+        self.enabled
     }
 }
 
@@ -185,7 +193,7 @@ pub fn launch_from_handler<P: PadRef>(
         }
         // Mask out any gamepads that aren't this player's
         for (i, pad) in all_pads.iter().enumerate() {
-            if pad.vendor() == 0x28de || p.pad_index != i {
+            if !pad.enabled() || p.pad_index != i {
                 let path = pad.path();
                 binds.push_str(&format!("--bind /dev/null {path} "));
             }

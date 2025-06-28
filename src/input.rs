@@ -1,3 +1,5 @@
+use crate::app::PadFilterType;
+
 #[derive(Clone)]
 pub struct Player {
     pub pad_index: usize,
@@ -19,6 +21,7 @@ use evdev::*;
 pub struct Gamepad {
     path: String,
     dev: Device,
+    enabled: bool,
 }
 pub enum PadButton {
     Left,
@@ -41,6 +44,7 @@ impl Gamepad {
             0x045e => "Xbox Controller",
             0x054c => "PS Controller",
             0x057e => "NT Pro Controller",
+            0x28de => "Steam Input",
             _ => self.name(),
         }
     }
@@ -79,11 +83,19 @@ impl Gamepad {
     pub fn vendor(&self) -> u16 {
         self.dev.input_id().vendor()
     }
+    pub fn enabled(&self) -> bool {
+        self.enabled
+    }
 }
 
-pub fn scan_evdev_gamepads() -> Vec<Gamepad> {
+pub fn scan_evdev_gamepads(filter: &PadFilterType) -> Vec<Gamepad> {
     let mut pads: Vec<Gamepad> = Vec::new();
     for dev in evdev::enumerate() {
+        let enabled = match filter {
+            PadFilterType::All => true,
+            PadFilterType::NoSteamInput => dev.1.input_id().vendor() != 0x28de,
+            PadFilterType::OnlySteamInput => dev.1.input_id().vendor() == 0x28de,
+        };
         let has_btn_south = dev
             .1
             .supported_keys()
@@ -96,9 +108,11 @@ pub fn scan_evdev_gamepads() -> Vec<Gamepad> {
             pads.push(Gamepad {
                 path: dev.0.to_str().unwrap().to_string(),
                 dev: dev.1,
+                enabled,
             });
         }
     }
+    pads.sort_by_key(|pad| pad.path().to_string());
     pads
 }
 

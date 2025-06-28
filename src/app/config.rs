@@ -6,6 +6,13 @@ use std::io::BufReader;
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
+pub enum PadFilterType {
+    All,
+    NoSteamInput,
+    OnlySteamInput,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PartyConfig {
     pub force_sdl: bool,
@@ -14,6 +21,7 @@ pub struct PartyConfig {
     pub proton_version: String,
     #[serde(default)]
     pub vertical_two_player: bool,
+    pub pad_filter_type: PadFilterType,
 }
 
 pub fn load_cfg() -> PartyConfig {
@@ -32,6 +40,7 @@ pub fn load_cfg() -> PartyConfig {
         gamescope_sdl_backend: true,
         proton_version: "".to_string(),
         vertical_two_player: false,
+        pad_filter_type: PadFilterType::NoSteamInput,
     }
 }
 
