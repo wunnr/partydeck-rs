@@ -17,6 +17,7 @@ pub enum PadFilterType {
 pub struct PartyConfig {
     pub force_sdl: bool,
     pub render_scale: i32,
+    pub enable_kwin_script: bool,
     pub gamescope_sdl_backend: bool,
     pub proton_version: String,
     #[serde(default)]
@@ -37,6 +38,7 @@ pub fn load_cfg() -> PartyConfig {
     PartyConfig {
         force_sdl: false,
         render_scale: 100,
+        enable_kwin_script: true,
         gamescope_sdl_backend: true,
         proton_version: "".to_string(),
         vertical_two_player: false,

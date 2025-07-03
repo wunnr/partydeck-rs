@@ -383,6 +383,10 @@ impl PartyApp {
             egui::Slider::new(&mut self.options.render_scale, 35..=200)
                 .text("Instance resolution scale"),
         );
+        let enable_kwin_script_check = ui.checkbox(
+            &mut self.options.enable_kwin_script,
+            "Automatically resize/reposition instances",
+        );
         let gamescope_sdl_backend_check = ui.checkbox(
             &mut self.options.gamescope_sdl_backend,
             "Use SDL backend for Gamescope",
@@ -397,6 +401,9 @@ impl PartyApp {
         }
         if render_scale_slider.hovered() {
             self.infotext = "PartyDeck divides each instance by a base resolution. 100% render scale = your monitor's native resolution. Lower this value to increase performance, but may cause graphical issues or even break some games. If you're using a small screen like the Steam Deck's handheld screen, increase this to 150% or higher.".to_string();
+        }
+        if enable_kwin_script_check.hovered() {
+            self.infotext = "Resizes/repositions instances to fit the screen using a KWin script. If unsure, leave this checked. If using a desktop environment or window manager other than KDE Plasma, uncheck this; note that you will need to manually resize and reposition the windows.".to_string();
         }
         if gamescope_sdl_backend_check.hovered() {
             self.infotext = "Runs gamescope sessions using the SDL backend. If unsure, leave this checked. If gamescope sessions only show a black screen or give an error (especially on Nvidia + Wayland), try disabling this.".to_string();
@@ -817,19 +824,25 @@ fn run_handler_game(
     let cmd = launch_from_handler(&handler, &pad_infos, &players, &cfg)?;
     println!("\nCOMMAND:\n{}\n", cmd);
 
-    let script = if players.len() == 2 && cfg.vertical_two_player {
-        "splitscreen_kwin_vertical.js"
-    } else {
-        "splitscreen_kwin.js"
-    };
-    kwin_dbus_start_script(PATH_RES.join(script))?;
+    if cfg.enable_kwin_script {
+        let script = if players.len() == 2 && cfg.vertical_two_player {
+            "splitscreen_kwin_vertical.js"
+        } else {
+            "splitscreen_kwin.js"
+        };
+
+        kwin_dbus_start_script(PATH_RES.join(script))?;
+    }
 
     std::process::Command::new("sh")
         .arg("-c")
         .arg(cmd)
         .status()?;
 
-    kwin_dbus_unload_script()?;
+    if cfg.enable_kwin_script {
+        kwin_dbus_unload_script()?;
+    }
+
     remove_guest_profiles()?;
 
     Ok(())
