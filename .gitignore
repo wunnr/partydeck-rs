@@ -1,3 +1,5 @@
 /target
 /build
+/releases
+gen_release.sh
 handler.json
