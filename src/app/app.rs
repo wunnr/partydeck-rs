@@ -453,6 +453,7 @@ impl PartyApp {
         }
         });
 
+        ui.separator();
         ui.horizontal(|ui| {
             ui.label("Update/Redownload Dependencies");
             if ui.button("Goldberg Steam Emu").clicked() {
@@ -519,6 +520,28 @@ impl PartyApp {
                 {
                     msg("Error", "Couldn't open paths.json!");
                 }
+            }
+        });
+
+        ui.separator();
+        ui.horizontal(|ui| {
+            if ui.button("Save Settings").clicked() {
+                if let Err(e) = save_cfg(&self.options) {
+                    msg("Error", &format!("Couldn't save settings: {}", e));
+                }
+            }
+            if ui.button("Restore Defaults").clicked() {
+                self.options = PartyConfig {
+                    force_sdl: false,
+                    render_scale: 100,
+                    enable_kwin_script: true,
+                    gamescope_sdl_backend: true,
+                    proton_version: "".to_string(),
+                    vertical_two_player: false,
+                    pad_filter_type: PadFilterType::NoSteamInput,
+                };
+                self.pads.clear();
+                self.pads = scan_evdev_gamepads(&self.options.pad_filter_type);
             }
         });
     }
