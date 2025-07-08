@@ -1,5 +1,6 @@
 /target
 /build
 /releases
+res/gamescope
 gen_release.sh
 handler.json
