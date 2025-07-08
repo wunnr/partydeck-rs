@@ -6,46 +6,9 @@ use crate::input::*;
 use crate::paths::*;
 use crate::util::{get_instance_resolution, get_rootpath_handler, get_screen_resolution, msg};
 
-#[derive(Clone)]
-pub struct PadInfo {
-    pub path: String,
-    pub vendor: u16,
-    pub enabled: bool,
-}
-
-pub trait PadRef {
-    fn path(&self) -> &str;
-    fn vendor(&self) -> u16;
-    fn enabled(&self) -> bool;
-}
-
-impl PadRef for Gamepad {
-    fn path(&self) -> &str {
-        self.path()
-    }
-    fn vendor(&self) -> u16 {
-        self.vendor()
-    }
-    fn enabled(&self) -> bool {
-        self.enabled()
-    }
-}
-
-impl PadRef for PadInfo {
-    fn path(&self) -> &str {
-        &self.path
-    }
-    fn vendor(&self) -> u16 {
-        self.vendor
-    }
-    fn enabled(&self) -> bool {
-        self.enabled
-    }
-}
-
-pub fn launch_from_handler<P: PadRef>(
+pub fn launch_from_handler(
     h: &Handler,
-    all_pads: &[P],
+    all_pads: &[PadInfo],
     players: &Vec<Player>,
     cfg: &PartyConfig,
 ) -> Result<String, Box<dyn std::error::Error>> {
@@ -193,8 +156,8 @@ pub fn launch_from_handler<P: PadRef>(
         }
         // Mask out any gamepads that aren't this player's
         for (i, pad) in all_pads.iter().enumerate() {
-            if !pad.enabled() || p.pad_index != i {
-                let path = pad.path();
+            if !pad.enabled || p.pad_index != i {
+                let path = &pad.path;
                 binds.push_str(&format!("--bind /dev/null {path} "));
             }
         }
@@ -228,9 +191,9 @@ pub fn launch_from_handler<P: PadRef>(
     Ok(cmd)
 }
 
-pub fn launch_executable<P: PadRef>(
+pub fn launch_executable(
     exec_path: &PathBuf,
-    all_pads: &[P],
+    all_pads: &[PadInfo],
     players: &Vec<Player>,
     cfg: &PartyConfig,
 ) -> Result<String, Box<dyn std::error::Error>> {
@@ -304,8 +267,8 @@ pub fn launch_executable<P: PadRef>(
 
         // Mask out any gamepads that aren't this player's
         for (i, pad) in all_pads.iter().enumerate() {
-            if pad.vendor() == 0x28de || p.pad_index != i {
-                let path = pad.path();
+            if pad.vendor == 0x28de || p.pad_index != i {
+                let path = &pad.path;
                 binds.push_str(&format!("--bind /dev/null {path} "));
             }
         }

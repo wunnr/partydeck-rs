@@ -18,11 +18,14 @@ pub fn is_pad_in_players(index: usize, players: &Vec<Player>) -> bool {
 
 use evdev::*;
 
-pub struct Gamepad {
-    path: String,
-    dev: Device,
-    enabled: bool,
+#[derive(Clone, PartialEq, Copy)]
+pub enum DeviceType {
+    Gamepad,
+    Keyboard,
+    Mouse,
+    Other,
 }
+
 pub enum PadButton {
     Left,
     Right,
@@ -34,6 +37,26 @@ pub enum PadButton {
     YBtn,
     StartBtn,
     SelectBtn,
+
+    AKey,
+    RKey,
+
+    RightClick,
+}
+
+#[derive(Clone)]
+pub struct PadInfo {
+    pub path: String,
+    pub vendor: u16,
+    pub enabled: bool,
+    pub device_type: DeviceType,
+}
+
+pub struct Gamepad {
+    path: String,
+    dev: Device,
+    enabled: bool,
+    device_type: DeviceType,
 }
 impl Gamepad {
     pub fn name(&self) -> &str {
@@ -74,6 +97,11 @@ impl Gamepad {
                     EventSummary::AbsoluteAxis(_, AbsoluteAxisCode::ABS_HAT0Y, 1) => {
                         Some(PadButton::Down)
                     }
+                    //keyboard
+                    EventSummary::Key(_, KeyCode::KEY_A, 1) => Some(PadButton::AKey),
+                    EventSummary::Key(_, KeyCode::KEY_R, 1) => Some(PadButton::RKey),
+                    //mouse
+                    EventSummary::Key(_, KeyCode::BTN_RIGHT, 1) => Some(PadButton::RightClick),
                     _ => btn,
                 };
             }
@@ -86,6 +114,9 @@ impl Gamepad {
     pub fn enabled(&self) -> bool {
         self.enabled
     }
+    pub fn device_type(&self) -> DeviceType {
+        self.device_type
+    }
 }
 
 pub fn scan_evdev_gamepads(filter: &PadFilterType) -> Vec<Gamepad> {
@@ -96,11 +127,30 @@ pub fn scan_evdev_gamepads(filter: &PadFilterType) -> Vec<Gamepad> {
             PadFilterType::NoSteamInput => dev.1.input_id().vendor() != 0x28de,
             PadFilterType::OnlySteamInput => dev.1.input_id().vendor() == 0x28de,
         };
-        let has_btn_south = dev
+
+        let device_type = if dev
             .1
             .supported_keys()
-            .map_or(false, |keys| keys.contains(KeyCode::BTN_SOUTH));
-        if has_btn_south {
+            .map_or(false, |keys| keys.contains(KeyCode::BTN_SOUTH))
+        {
+            DeviceType::Gamepad
+        } else if dev
+            .1
+            .supported_keys()
+            .map_or(false, |keys| keys.contains(KeyCode::BTN_LEFT))
+        {
+            DeviceType::Mouse
+        } else if dev
+            .1
+            .supported_keys()
+            .map_or(false, |keys| keys.contains(KeyCode::KEY_SPACE))
+        {
+            DeviceType::Keyboard
+        } else {
+            DeviceType::Other
+        };
+
+        if device_type != DeviceType::Other {
             if dev.1.set_nonblocking(true).is_err() {
                 println!("Failed to set non-blocking mode for {}", dev.0.display());
                 continue;
@@ -109,28 +159,10 @@ pub fn scan_evdev_gamepads(filter: &PadFilterType) -> Vec<Gamepad> {
                 path: dev.0.to_str().unwrap().to_string(),
                 dev: dev.1,
                 enabled,
+                device_type,
             });
         }
     }
     pads.sort_by_key(|pad| pad.path().to_string());
     pads
-}
-
-#[allow(dead_code)]
-pub fn scan_evdev_mice() -> Vec<Device> {
-    let mut mice: Vec<Device> = Vec::new();
-    for dev in evdev::enumerate() {
-        let has_btn_left = dev
-            .1
-            .supported_keys()
-            .map_or(false, |keys| keys.contains(KeyCode::BTN_LEFT));
-        if has_btn_left {
-            if dev.1.set_nonblocking(true).is_err() {
-                println!("Failed to set non-blocking mode for {}", dev.0.display());
-                continue;
-            }
-            mice.push(dev.1);
-        }
-    }
-    mice
 }

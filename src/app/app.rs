@@ -2,7 +2,7 @@ use crate::app::config::*;
 use crate::game::{Game::*, *};
 use crate::handler::*;
 use crate::input::*;
-use crate::launch::{PadInfo, launch_executable, launch_from_handler};
+use crate::launch::{launch_executable, launch_from_handler};
 use crate::paths::*;
 use crate::util::*;
 
@@ -635,13 +635,19 @@ impl PartyApp {
     }
 
     fn display_page_players(&mut self, ui: &mut Ui) {
-        ui.heading("Controllers");
+        ui.heading("Devices");
         ui.separator();
 
         for pad in self.pads.iter() {
+            let icon = match pad.device_type() {
+                DeviceType::Gamepad => "🎮",
+                DeviceType::Keyboard => "🖮",
+                DeviceType::Mouse => "🖱",
+                DeviceType::Other => "",
+            };
             ui.add_enabled(
                 pad.enabled(),
-                egui::Label::new(format!("🎮 {} ({})", pad.fancyname(), pad.path())),
+                egui::Label::new(format!("{} {} ({})", icon, pad.fancyname(), pad.path())),
             );
         }
 
@@ -745,7 +751,7 @@ impl PartyApp {
                 continue;
             }
             match pad.poll() {
-                Some(PadButton::ABtn) => {
+                Some(PadButton::ABtn) | Some(PadButton::AKey) | Some(PadButton::RightClick) => {
                     if self.players.len() < 4 {
                         self.players.push(Player {
                             pad_index: i,
@@ -754,7 +760,7 @@ impl PartyApp {
                         });
                     }
                 }
-                Some(PadButton::BBtn) => {
+                Some(PadButton::BBtn) | Some(PadButton::RKey) => {
                     if self.players.len() == 0 {
                         self.cur_page = MenuPage::Main;
                     }
@@ -766,7 +772,7 @@ impl PartyApp {
         let mut i = 0;
         while i < self.players.len() {
             match self.pads[self.players[i].pad_index].poll() {
-                Some(PadButton::BBtn) => {
+                Some(PadButton::BBtn) | Some(PadButton::RKey) => {
                     self.players.remove(i);
                     continue;
                 }
@@ -799,6 +805,7 @@ impl PartyApp {
                 path: p.path().to_string(),
                 vendor: p.vendor(),
                 enabled: p.enabled(),
+                device_type: p.device_type(),
             })
             .collect();
         let cfg = self.options.clone();
@@ -806,14 +813,14 @@ impl PartyApp {
         self.spawn_task("Launching...", move || match game {
             HandlerRef(handler) => {
                 if let Err(err) =
-                    run_handler_game(handler, players.clone(), pad_infos.clone(), cfg.clone())
+                    run_handler_game(handler, players.clone(), &pad_infos, cfg.clone())
                 {
                     println!("{}", err);
                     msg("Launch Error", &format!("{err}"));
                 }
             }
             Executable { path, .. } => {
-                if let Err(err) = run_exec_game(path, players, pad_infos, cfg) {
+                if let Err(err) = run_exec_game(path, players, &pad_infos, cfg) {
                     println!("{}", err);
                     msg("Launch Error", &format!("{err}"));
                 }
@@ -831,7 +838,7 @@ static GUEST_NAMES: [&str; 21] = [
 fn run_handler_game(
     handler: Handler,
     players: Vec<Player>,
-    pad_infos: Vec<PadInfo>,
+    pad_infos: &[PadInfo],
     cfg: PartyConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let _ = save_cfg(&cfg);
@@ -844,7 +851,7 @@ fn run_handler_game(
         create_symlink_folder(&handler)?;
     }
 
-    let cmd = launch_from_handler(&handler, &pad_infos, &players, &cfg)?;
+    let cmd = launch_from_handler(&handler, pad_infos, &players, &cfg)?;
     println!("\nCOMMAND:\n{}\n", cmd);
 
     if cfg.enable_kwin_script {
@@ -874,12 +881,12 @@ fn run_handler_game(
 fn run_exec_game(
     path: PathBuf,
     players: Vec<Player>,
-    pad_infos: Vec<PadInfo>,
+    pad_infos: &[PadInfo],
     cfg: PartyConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let _ = save_cfg(&cfg);
 
-    let cmd = launch_executable(&path, &pad_infos, &players, &cfg)?;
+    let cmd = launch_executable(&path, pad_infos, &players, &cfg)?;
 
     let script = if players.len() == 2 && cfg.vertical_two_player {
         "splitscreen_kwin_vertical.js"
