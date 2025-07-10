@@ -8,8 +8,8 @@ use crate::util::{get_instance_resolution, get_rootpath_handler, get_screen_reso
 
 pub fn launch_from_handler(
     h: &Handler,
-    all_pads: &[PadInfo],
-    players: &Vec<Player>,
+    input_devices: &[DeviceInfo],
+    instances: &Vec<Instance>,
     cfg: &PartyConfig,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let home = PATH_HOME.display();
@@ -91,12 +91,12 @@ pub fn launch_from_handler(
     let height = (screen_height as f32 * scale_factor) as u32;
 
     cmd.push_str(&format!("cd \"{gamedir}\"; "));
-    for (i, p) in players.iter().enumerate() {
-        let path_prof = &format!("{party}/profiles/{}", p.profname.as_str());
+    for (i, instance) in instances.iter().enumerate() {
+        let path_prof = &format!("{party}/profiles/{}", instance.profname.as_str());
         let path_save = &format!("{path_prof}/saves/{}", h.uid.as_str());
 
         let (gsc_width, gsc_height) =
-            get_instance_resolution(players.len(), i, width, height, cfg.vertical_two_player);
+            get_instance_resolution(instances.len(), i, width, height, cfg.vertical_two_player);
 
         if gsc_height < 600 && res_warn {
             msg(
@@ -155,19 +155,20 @@ pub fn launch_from_handler(
             ));
         }
         // Mask out any gamepads that aren't this player's
-        for (i, pad) in all_pads.iter().enumerate() {
-            if !pad.enabled || p.pad_index != i {
-                let path = &pad.path;
-                binds.push_str(&format!("--bind /dev/null {path} "));
-            }
-        }
+        // Disable for now
+        // for (i, dev) in input_devices.iter().enumerate() {
+        //     if !dev.enabled || p.pad_index != i {
+        //         let path = &pad.path;
+        //         binds.push_str(&format!("--bind /dev/null {path} "));
+        //     }
+        // }
 
         let args = h
             .args
             .iter()
             .map(|arg| match arg.as_str() {
                 "$GAMEDIR" => format!(" \"{gamedir}\""),
-                "$PROFILE" => format!(" \"{}\"", p.profname.as_str()),
+                "$PROFILE" => format!(" \"{}\"", instance.profname.as_str()),
                 "$WIDTH" => format!(" {gsc_width}"),
                 "$HEIGHT" => format!(" {gsc_height}"),
                 "$WIDTHXHEIGHT" => format!(" \"{gsc_width}x{gsc_height}\""),
@@ -177,7 +178,7 @@ pub fn launch_from_handler(
 
         cmd.push_str(&format!("{binds} {runtime} \"{gamedir}/{exec}\"{args} "));
 
-        if i < players.len() - 1 {
+        if i < instances.len() - 1 {
             // Proton games need a ~5 second buffer in-between launches
             // TODO: investigate why this is
             if h.win {
@@ -193,8 +194,8 @@ pub fn launch_from_handler(
 
 pub fn launch_executable(
     exec_path: &PathBuf,
-    all_pads: &[PadInfo],
-    players: &Vec<Player>,
+    input_devices: &[DeviceInfo],
+    players: &Vec<Instance>,
     cfg: &PartyConfig,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let exec = exec_path.to_string_lossy();
@@ -243,7 +244,7 @@ pub fn launch_executable(
     let height = (screen_height as f32 * scale_factor) as u32;
 
     cmd.push_str(&format!("cd \"{gamedir}\"; "));
-    for (i, p) in players.iter().enumerate() {
+    for (i, inst) in players.iter().enumerate() {
         let (gsc_width, gsc_height) =
             get_instance_resolution(players.len(), i, width, height, cfg.vertical_two_player);
 
@@ -266,12 +267,13 @@ pub fn launch_executable(
         let mut binds = String::new();
 
         // Mask out any gamepads that aren't this player's
-        for (i, pad) in all_pads.iter().enumerate() {
-            if pad.vendor == 0x28de || p.pad_index != i {
-                let path = &pad.path;
-                binds.push_str(&format!("--bind /dev/null {path} "));
-            }
-        }
+        // Disable for now
+        // for (i, pad) in input_devices.iter().enumerate() {
+        //     if pad.vendor == 0x28de || inst.pad_index != i {
+        //         let path = &pad.path;
+        //         binds.push_str(&format!("--bind /dev/null {path} "));
+        //     }
+        // }
 
         cmd.push_str(&format!("{binds} {runtime} \"{exec}\""));
 
