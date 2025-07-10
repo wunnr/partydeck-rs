@@ -668,18 +668,6 @@ impl PartyApp {
                 Some(_) => "Cancel",
             };
             ui.label(remove_text);
-
-            if self.instances.len() > 0 {
-                ui.add(
-                    egui::Image::new(egui::include_image!("../../res/BTN_START.png"))
-                        .max_height(12.0),
-                );
-                ui.add(
-                    egui::Image::new(egui::include_image!("../../res/BTN_START_PS5.png"))
-                        .max_height(12.0),
-                );
-                ui.label("Start");
-            }
         });
 
         ui.separator();
@@ -737,9 +725,19 @@ impl PartyApp {
 
         if self.instances.len() > 0 {
             ui.separator();
-            if ui.button("Start").clicked() {
-                self.start_game();
-            }
+            ui.horizontal(|ui| {
+                ui.add(
+                    egui::Image::new(egui::include_image!("../../res/BTN_START.png"))
+                        .max_height(16.0),
+                );
+                ui.add(
+                    egui::Image::new(egui::include_image!("../../res/BTN_START_PS5.png"))
+                        .max_height(16.0),
+                );
+                if ui.button("Start").clicked() {
+                    self.start_game();
+                }
+            });
         }
     }
 }
