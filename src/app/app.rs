@@ -1,15 +1,13 @@
-use crate::app::app::egui::RichText;
 use crate::app::config::*;
 use crate::game::{Game::*, *};
-use crate::handler::*;
 use crate::input::*;
-use crate::launch::{launch_executable, launch_from_handler};
+use crate::launch::launch_game;
 use crate::paths::*;
 use crate::util::*;
 
 use dialog::DialogBox;
+use eframe::egui::RichText;
 use eframe::egui::{self, Key, Ui};
-use std::path::PathBuf;
 
 #[derive(Eq, PartialEq)]
 pub enum MenuPage {
@@ -282,7 +280,7 @@ impl PartyApp {
                 }
                 Some(PadButton::StartBtn) => {
                     if self.instances.len() > 0 && self.is_device_in_any_instance(i) {
-                        self.start_game();
+                        self.prepare_game_launch();
                     }
                 }
                 _ => {}
@@ -320,12 +318,11 @@ impl PartyApp {
         }
     }
 
-    // This whole "start_game -> run_handler_game/run_exec_game -> launch_from_handler/launch_executable" process is really bad.
-    // Most of the stuff being done is redundant between handlers and executables, so the two processes should be merged.
-    pub fn start_game(&mut self) {
+    fn prepare_game_launch(&mut self) {
         let game = cur_game!(self).to_owned();
         let mut instances = self.instances.clone();
         let mut guests = GUEST_NAMES.to_vec();
+
         for instance in &mut instances {
             if instance.profselection == 0 {
                 let i = fastrand::usize(..guests.len());
@@ -335,6 +332,7 @@ impl PartyApp {
                 instance.profname = self.profiles[instance.profselection].to_owned();
             }
         }
+
         let dev_infos: Vec<DeviceInfo> = self
             .input_devices
             .iter()
@@ -345,22 +343,15 @@ impl PartyApp {
                 device_type: p.device_type(),
             })
             .collect();
+
         let cfg = self.options.clone();
+        let _ = save_cfg(&cfg);
+
         self.cur_page = MenuPage::Main;
-        self.spawn_task("Launching...", move || match game {
-            HandlerRef(handler) => {
-                if let Err(err) =
-                    run_handler_game(handler, instances.clone(), &dev_infos, cfg.clone())
-                {
-                    println!("{}", err);
-                    msg("Launch Error", &format!("{err}"));
-                }
-            }
-            Executable { path, .. } => {
-                if let Err(err) = run_exec_game(path, instances, &dev_infos, cfg) {
-                    println!("{}", err);
-                    msg("Launch Error", &format!("{err}"));
-                }
+        self.spawn_task("Launching...", move || {
+            if let Err(err) = launch_game(&game, &dev_infos, &instances, &cfg) {
+                println!("{}", err);
+                msg("Launch Error", &format!("{err}"));
             }
         });
     }
@@ -735,7 +726,7 @@ impl PartyApp {
                         .max_height(16.0),
                 );
                 if ui.button("Start").clicked() {
-                    self.start_game();
+                    self.prepare_game_launch();
                 }
             });
         }
@@ -745,38 +736,30 @@ impl PartyApp {
 impl PartyApp {
     fn display_panel_top(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
+            ui.add(
+                egui::Image::new(egui::include_image!("../../res/BTN_EAST.png")).max_height(12.0),
+            );
+            ui.selectable_value(&mut self.cur_page, MenuPage::Main, "Home");
+            ui.add(
+                egui::Image::new(egui::include_image!("../../res/BTN_NORTH.png")).max_height(12.0),
+            );
+            ui.selectable_value(&mut self.cur_page, MenuPage::Settings, "Settings");
+            ui.add(
+                egui::Image::new(egui::include_image!("../../res/BTN_WEST.png")).max_height(12.0),
+            );
             if ui
-                .add(egui::Button::image_and_text(
-                    egui::include_image!("../../res/BTN_NORTH.png"),
-                    "⛭",
-                ))
-                .clicked()
-            {
-                self.cur_page = MenuPage::Settings;
-            }
-            if ui
-                .add(egui::Button::image_and_text(
-                    egui::include_image!("../../res/BTN_WEST.png"),
-                    "👥",
-                ))
+                .selectable_value(&mut self.cur_page, MenuPage::Profiles, "Profiles")
                 .clicked()
             {
                 self.profiles = scan_profiles(false);
                 self.cur_page = MenuPage::Profiles;
             }
-            if ui
-                .add(egui::Button::image_and_text(
-                    egui::include_image!("../../res/BTN_EAST.png"),
-                    "🏠",
-                ))
-                .clicked()
-            {
-                self.cur_page = MenuPage::Main;
-            }
+
             if ui.button("🎮 Rescan").clicked() {
                 self.instances.clear();
                 self.input_devices = scan_input_devices(&self.options.pad_filter_type);
             }
+
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("❌ Quit").clicked() {
                     ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
@@ -945,73 +928,3 @@ static GUEST_NAMES: [&str; 21] = [
     "Madeline", "Theo", "Yokatta", "Wyrm", "Brodiee", "Supreme", "Conk", "Gort", "Lich", "Smores",
     "Canary",
 ];
-
-fn run_handler_game(
-    handler: Handler,
-    instances: Vec<Instance>,
-    pad_infos: &[DeviceInfo],
-    cfg: PartyConfig,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let _ = save_cfg(&cfg);
-
-    for instance in &instances {
-        create_profile(instance.profname.as_str())?;
-        create_gamesave(instance.profname.as_str(), &handler)?;
-    }
-    if handler.symlink_dir {
-        create_symlink_folder(&handler)?;
-    }
-
-    let cmd = launch_from_handler(&handler, pad_infos, &instances, &cfg)?;
-    println!("\nCOMMAND:\n{}\n", cmd);
-
-    if cfg.enable_kwin_script {
-        let script = if instances.len() == 2 && cfg.vertical_two_player {
-            "splitscreen_kwin_vertical.js"
-        } else {
-            "splitscreen_kwin.js"
-        };
-
-        kwin_dbus_start_script(PATH_RES.join(script))?;
-    }
-
-    std::process::Command::new("sh")
-        .arg("-c")
-        .arg(cmd)
-        .status()?;
-
-    if cfg.enable_kwin_script {
-        kwin_dbus_unload_script()?;
-    }
-
-    remove_guest_profiles()?;
-
-    Ok(())
-}
-
-fn run_exec_game(
-    path: PathBuf,
-    instances: Vec<Instance>,
-    dev_infos: &[DeviceInfo],
-    cfg: PartyConfig,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let _ = save_cfg(&cfg);
-
-    let cmd = launch_executable(&path, dev_infos, &instances, &cfg)?;
-
-    let script = if instances.len() == 2 && cfg.vertical_two_player {
-        "splitscreen_kwin_vertical.js"
-    } else {
-        "splitscreen_kwin.js"
-    };
-    kwin_dbus_start_script(PATH_RES.join(script))?;
-
-    std::process::Command::new("sh")
-        .arg("-c")
-        .arg(cmd)
-        .status()?;
-
-    kwin_dbus_unload_script()?;
-
-    Ok(())
-}
