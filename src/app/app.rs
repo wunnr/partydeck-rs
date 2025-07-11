@@ -11,7 +11,7 @@ use eframe::egui::{self, Key, Ui};
 
 #[derive(Eq, PartialEq)]
 pub enum MenuPage {
-    Main,
+    Home,
     Settings,
     Profiles,
     Game,
@@ -50,7 +50,7 @@ impl Default for PartyApp {
         Self {
             needs_update: check_for_partydeck_update(),
             options,
-            cur_page: MenuPage::Main,
+            cur_page: MenuPage::Home,
             infotext: String::new(),
             input_devices,
             instances: Vec::new(),
@@ -109,7 +109,7 @@ impl eframe::App for PartyApp {
                 });
         }
 
-        if (self.cur_page != MenuPage::Main) && (self.cur_page != MenuPage::Instances) {
+        if (self.cur_page != MenuPage::Home) && (self.cur_page != MenuPage::Instances) {
             self.display_panel_bottom(ctx);
         }
 
@@ -118,7 +118,7 @@ impl eframe::App for PartyApp {
                 ui.disable();
             }
             match self.cur_page {
-                MenuPage::Main => self.display_page_main(ui),
+                MenuPage::Home => self.display_page_main(ui),
                 MenuPage::Settings => self.display_page_settings(ui),
                 MenuPage::Profiles => self.display_page_profiles(ui),
                 MenuPage::Game => self.display_page_game(ui),
@@ -210,13 +210,21 @@ impl PartyApp {
             }
             match pad.poll() {
                 Some(PadButton::ABtn) => key = Some(Key::Enter),
-                Some(PadButton::BBtn) => self.cur_page = MenuPage::Main,
+                Some(PadButton::BBtn) => self.cur_page = MenuPage::Home,
                 Some(PadButton::XBtn) => {
                     self.profiles = scan_profiles(false);
                     self.cur_page = MenuPage::Profiles;
                 }
                 Some(PadButton::YBtn) => self.cur_page = MenuPage::Settings,
                 Some(PadButton::SelectBtn) => key = Some(Key::Tab),
+                Some(PadButton::StartBtn) => {
+                    if self.cur_page == MenuPage::Game {
+                        self.instances.clear();
+                        self.profiles = scan_profiles(true);
+                        self.instance_add_dev = None;
+                        self.cur_page = MenuPage::Instances;
+                    }
+                }
                 Some(PadButton::Up) => key = Some(Key::ArrowUp),
                 Some(PadButton::Down) => key = Some(Key::ArrowDown),
                 Some(PadButton::Left) => key = Some(Key::ArrowLeft),
@@ -347,7 +355,7 @@ impl PartyApp {
         let cfg = self.options.clone();
         let _ = save_cfg(&cfg);
 
-        self.cur_page = MenuPage::Main;
+        self.cur_page = MenuPage::Home;
         self.spawn_task("Launching...", move || {
             if let Err(err) = launch_game(&game, &dev_infos, &instances, &cfg) {
                 println!("{}", err);
@@ -588,6 +596,13 @@ impl PartyApp {
         ui.separator();
 
         ui.horizontal(|ui| {
+            ui.add(
+                egui::Image::new(egui::include_image!("../../res/BTN_START.png")).max_height(16.0),
+            );
+            ui.add(
+                egui::Image::new(egui::include_image!("../../res/BTN_START_PS5.png"))
+                    .max_height(16.0),
+            );
             if ui.button("Play").clicked() {
                 self.instances.clear();
                 self.profiles = scan_profiles(true);
@@ -739,7 +754,7 @@ impl PartyApp {
             ui.add(
                 egui::Image::new(egui::include_image!("../../res/BTN_EAST.png")).max_height(12.0),
             );
-            ui.selectable_value(&mut self.cur_page, MenuPage::Main, "Home");
+            ui.selectable_value(&mut self.cur_page, MenuPage::Home, "Home");
             ui.add(
                 egui::Image::new(egui::include_image!("../../res/BTN_NORTH.png")).max_height(12.0),
             );
