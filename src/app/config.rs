@@ -19,6 +19,7 @@ pub struct PartyConfig {
     pub render_scale: i32,
     pub enable_kwin_script: bool,
     pub gamescope_sdl_backend: bool,
+    pub kbm_support: bool,
     pub proton_version: String,
     #[serde(default)]
     pub vertical_two_player: bool,
@@ -40,6 +41,7 @@ pub fn load_cfg() -> PartyConfig {
         render_scale: 100,
         enable_kwin_script: true,
         gamescope_sdl_backend: true,
+        kbm_support: true,
         proton_version: "".to_string(),
         vertical_two_player: false,
         pad_filter_type: PadFilterType::NoSteamInput,
