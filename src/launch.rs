@@ -208,7 +208,8 @@ pub fn launch_cmd(
 
         if instance_has_keyboard {
             cmd.push_str("--backend-disable-keyboard ");
-        } else if instance_has_mouse {
+        }
+        if instance_has_mouse {
             cmd.push_str("--backend-disable-mouse ");
         }
         if !kbms.is_empty() {
