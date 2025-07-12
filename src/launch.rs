@@ -185,35 +185,42 @@ pub fn launch_cmd(
             false => "",
         };
 
+        let gamescope = match cfg.kbm_support {
+            true => &format!("{res}/gamescope"),
+            false => "gamescope",
+        };
+
         cmd.push_str(&format!(
-            "{res}/gamescope -W {gsc_width} -H {gsc_height} {gsc_sdl} "
+            "{gamescope} -W {gsc_width} -H {gsc_height} {gsc_sdl} "
         ));
 
-        let mut instance_has_keyboard = false;
-        let mut instance_has_mouse = false;
-        let mut kbms = String::new();
+        if cfg.kbm_support {
+            let mut instance_has_keyboard = false;
+            let mut instance_has_mouse = false;
+            let mut kbms = String::new();
 
-        for d in &instance.devices {
-            if input_devices[*d].device_type == DeviceType::Keyboard {
-                instance_has_keyboard = true;
-            } else if input_devices[*d].device_type == DeviceType::Mouse {
-                instance_has_mouse = true;
+            for d in &instance.devices {
+                if input_devices[*d].device_type == DeviceType::Keyboard {
+                    instance_has_keyboard = true;
+                } else if input_devices[*d].device_type == DeviceType::Mouse {
+                    instance_has_mouse = true;
+                }
+                if input_devices[*d].device_type == DeviceType::Keyboard
+                    || input_devices[*d].device_type == DeviceType::Mouse
+                {
+                    kbms.push_str(&format!("{},", input_devices[*d].path));
+                }
             }
-            if input_devices[*d].device_type == DeviceType::Keyboard
-                || input_devices[*d].device_type == DeviceType::Mouse
-            {
-                kbms.push_str(&format!("{},", input_devices[*d].path));
-            }
-        }
 
-        if instance_has_keyboard {
-            cmd.push_str("--backend-disable-keyboard ");
-        }
-        if instance_has_mouse {
-            cmd.push_str("--backend-disable-mouse ");
-        }
-        if !kbms.is_empty() {
-            cmd.push_str(&format!("--libinput-hold-dev {} ", kbms));
+            if instance_has_keyboard {
+                cmd.push_str("--backend-disable-keyboard ");
+            }
+            if instance_has_mouse {
+                cmd.push_str("--backend-disable-mouse ");
+            }
+            if !kbms.is_empty() {
+                cmd.push_str(&format!("--libinput-hold-dev {} ", kbms));
+            }
         }
 
         cmd.push_str(&format!("-- "));
