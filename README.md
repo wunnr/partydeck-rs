@@ -3,7 +3,6 @@
 ### `PartyDeck`
 
 A split-screen game launcher for Linux/SteamOS
-this is for developing and testing of a new input system. Users will be able to place multiple devices on one instance, including keyboards and mice on top of gamepads.
 
 ---
 
