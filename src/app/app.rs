@@ -18,10 +18,17 @@ pub enum MenuPage {
     Instances,
 }
 
+#[derive(Eq, PartialEq)]
+pub enum SettingsPage {
+    General,
+    Gamescope,
+}
+
 pub struct PartyApp {
     pub needs_update: bool,
     pub options: PartyConfig,
     pub cur_page: MenuPage,
+    pub settings_page: SettingsPage,
     pub infotext: String,
 
     pub input_devices: Vec<InputDevice>,
@@ -51,6 +58,7 @@ impl Default for PartyApp {
             needs_update: check_for_partydeck_update(),
             options,
             cur_page: MenuPage::Home,
+            settings_page: SettingsPage::General,
             infotext: String::new(),
             input_devices,
             instances: Vec::new(),
@@ -254,19 +262,26 @@ impl PartyApp {
             }
             match self.input_devices[i].poll() {
                 Some(PadButton::ABtn) | Some(PadButton::ZKey) | Some(PadButton::RightClick) => {
-                    if !self.is_device_in_any_instance(i) {
-                        match self.instance_add_dev {
-                            Some(inst) => {
-                                self.instance_add_dev = None;
-                                self.instances[inst].devices.push(i);
-                            }
-                            None => {
-                                self.instances.push(Instance {
-                                    devices: vec![i],
-                                    profname: String::new(),
-                                    profselection: 0,
-                                });
-                            }
+                    if self.input_devices[i].device_type() != DeviceType::Gamepad
+                        && !self.options.kbm_support
+                    {
+                        continue;
+                    }
+                    if self.is_device_in_any_instance(i) {
+                        continue;
+                    }
+
+                    match self.instance_add_dev {
+                        Some(inst) => {
+                            self.instance_add_dev = None;
+                            self.instances[inst].devices.push(i);
+                        }
+                        None => {
+                            self.instances.push(Instance {
+                                devices: vec![i],
+                                profname: String::new(),
+                                profselection: 0,
+                            });
                         }
                     }
                 }
@@ -380,171 +395,44 @@ impl PartyApp {
 
     fn display_page_settings(&mut self, ui: &mut Ui) {
         self.infotext.clear();
-        ui.heading("Settings");
-        ui.separator();
-        let force_sdl2_check = ui.checkbox(&mut self.options.force_sdl, "Force Steam Runtime SDL2");
-        let render_scale_slider = ui.add(
-            egui::Slider::new(&mut self.options.render_scale, 35..=200)
-                .text("Instance resolution scale"),
-        );
-        let enable_kwin_script_check = ui.checkbox(
-            &mut self.options.enable_kwin_script,
-            "Automatically resize/reposition instances",
-        );
-        let gamescope_sdl_backend_check = ui.checkbox(
-            &mut self.options.gamescope_sdl_backend,
-            "Use SDL backend for Gamescope",
-        );
-        let vertical_two_player_check = ui.checkbox(
-            &mut self.options.vertical_two_player,
-            "Vertical split for 2 players",
-        );
-
-        if force_sdl2_check.hovered() {
-            self.infotext = "Forces games to use the version of SDL2 included in the Steam Runtime. Only works on native Linux games, may fix problematic game controller support (incorrect mappings) in some games, may break others. If unsure, leave this unchecked.".to_string();
-        }
-        if render_scale_slider.hovered() {
-            self.infotext = "PartyDeck divides each instance by a base resolution. 100% render scale = your monitor's native resolution. Lower this value to increase performance, but may cause graphical issues or even break some games. If you're using a small screen like the Steam Deck's handheld screen, increase this to 150% or higher.".to_string();
-        }
-        if enable_kwin_script_check.hovered() {
-            self.infotext = "Resizes/repositions instances to fit the screen using a KWin script. If unsure, leave this checked. If using a desktop environment or window manager other than KDE Plasma, uncheck this; note that you will need to manually resize and reposition the windows.".to_string();
-        }
-        if gamescope_sdl_backend_check.hovered() {
-            self.infotext = "Runs gamescope sessions using the SDL backend. If unsure, leave this checked. If gamescope sessions only show a black screen or give an error (especially on Nvidia + Wayland), try disabling this.".to_string();
-        }
-        if vertical_two_player_check.hovered() {
-            self.infotext =
-                "Splits two-player games vertically (side by side) instead of horizontally."
-                    .to_string();
-        }
-
         ui.horizontal(|ui| {
-            let filter_label = ui.label("Controller filter");
-            let r1 = ui.radio_value(
-                &mut self.options.pad_filter_type,
-                PadFilterType::All,
-                "All controllers",
+            ui.heading("Settings");
+            ui.selectable_value(&mut self.settings_page, SettingsPage::General, "General");
+            ui.selectable_value(
+                &mut self.settings_page,
+                SettingsPage::Gamescope,
+                "Gamescope",
             );
-            let r2 = ui.radio_value(
-                &mut self.options.pad_filter_type,
-                PadFilterType::NoSteamInput,
-                "No Steam Input",
-            );
-            let r3 = ui.radio_value(
-                &mut self.options.pad_filter_type,
-                PadFilterType::OnlySteamInput,
-                "Only Steam Input",
-            );
-
-            if filter_label.hovered() || r1.hovered() || r2.hovered() || r3.hovered() {
-                self.infotext = "Select which controllers to filter out. If unsure, set this to \"No Steam Input\". If you use Steam Input to remap controllers, you may want to select \"Only Steam Input\", but be warned that this option is experimental and is known to break certain Proton games.".to_string();
-            }
-
-            if r1.clicked() || r2.clicked() || r3.clicked() {
-                self.input_devices = scan_input_devices(&self.options.pad_filter_type);
-            }
         });
-
-        ui.horizontal(|ui| {
-        let proton_ver_label = ui.label("Proton version");
-        let proton_ver_editbox = ui.add(
-            egui::TextEdit::singleline(&mut self.options.proton_version)
-                .hint_text("GE-Proton"),
-        );
-        if proton_ver_label.hovered() || proton_ver_editbox.hovered() {
-            self.infotext = "Specify a Proton version. This can be a path, e.g. \"/path/to/proton\" or just a name, e.g. \"GE-Proton\" for the latest version of Proton-GE. If left blank, this will default to \"GE-Proton\". If unsure, leave this blank.".to_string();
-        }
-        });
-
         ui.separator();
-        ui.horizontal(|ui| {
-            ui.label("Update/Redownload Dependencies");
-            if ui.button("Goldberg Steam Emu").clicked() {
-                self.spawn_task("Updating Goldberg Steam Emu...", || {
-                    if let Err(err) = update_goldberg_emu() {
-                        msg("Error", &format!("Couldn't update: {}", err));
+
+        match self.settings_page {
+            SettingsPage::General => self.display_settings_general(ui),
+            SettingsPage::Gamescope => self.display_settings_gamescope(ui),
+        }
+
+        ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
+            ui.horizontal(|ui| {
+                if ui.button("Save Settings").clicked() {
+                    if let Err(e) = save_cfg(&self.options) {
+                        msg("Error", &format!("Couldn't save settings: {}", e));
                     }
-                });
-            }
-            if ui.button("UMU Launcher").clicked() {
-                self.spawn_task("Updating UMU Launcher...", || {
-                    if let Err(err) = update_umu_launcher() {
-                        msg("Error", &format!("Couldn't update: {}", err));
-                    }
-                });
-            }
-        });
-
-        ui.horizontal(|ui| {
-        if ui.button("Erase Proton Prefix").clicked() {
-            if yesno("Erase Prefix?", "This will erase the Wine prefix used by PartyDeck. This shouldn't erase profile/game-specific data, but exercise caution. Are you sure?") && PATH_PARTY.join("gamesyms").exists() {
-                if let Err(err) = std::fs::remove_dir_all(PATH_PARTY.join("pfx")) {
-                    msg("Error", &format!("Couldn't erase pfx data: {}", err));
                 }
-                else if let Err(err) = std::fs::create_dir_all(PATH_PARTY.join("pfx")) {
-                    msg("Error", &format!("Couldn't re-create pfx directory: {}", err));
+                if ui.button("Restore Defaults").clicked() {
+                    self.options = PartyConfig {
+                        force_sdl: false,
+                        render_scale: 100,
+                        enable_kwin_script: true,
+                        gamescope_sdl_backend: true,
+                        kbm_support: true,
+                        proton_version: "".to_string(),
+                        vertical_two_player: false,
+                        pad_filter_type: PadFilterType::NoSteamInput,
+                    };
+                    self.input_devices = scan_input_devices(&self.options.pad_filter_type);
                 }
-                else {
-                    msg("Data Erased", "Proton prefix data successfully erased.");
-                }
-            }
-        }
-
-        if ui.button("Erase Symlink Data").clicked() {
-            if yesno("Erase Symlink Data?", "This will erase all game symlink data. This shouldn't erase profile/game-specific data, but exercise caution. Are you sure?") && PATH_PARTY.join("gamesyms").exists() {
-                if let Err(err) = std::fs::remove_dir_all(PATH_PARTY.join("gamesyms")) {
-                    msg("Error", &format!("Couldn't erase symlink data: {}", err));
-                }
-                else if let Err(err) = std::fs::create_dir_all(PATH_PARTY.join("gamesyms")) {
-                    msg("Error", &format!("Couldn't re-create symlink directory: {}", err));
-                }
-                else {
-                    msg("Data Erased", "Game symlink data successfully erased.");
-                }
-            }
-        }
-        });
-
-        ui.horizontal(|ui| {
-            if ui.button("Open PartyDeck Data Folder").clicked() {
-                if let Err(_) = std::process::Command::new("sh")
-                    .arg("-c")
-                    .arg(format!("xdg-open {}/", PATH_PARTY.display()))
-                    .status()
-                {
-                    msg("Error", "Couldn't open PartyDeck Data Folder!");
-                }
-            }
-            if ui.button("Edit game paths").clicked() {
-                if let Err(_) = std::process::Command::new("sh")
-                    .arg("-c")
-                    .arg(format!("xdg-open {}/paths.json", PATH_PARTY.display(),))
-                    .status()
-                {
-                    msg("Error", "Couldn't open paths.json!");
-                }
-            }
-        });
-
-        ui.separator();
-        ui.horizontal(|ui| {
-            if ui.button("Save Settings").clicked() {
-                if let Err(e) = save_cfg(&self.options) {
-                    msg("Error", &format!("Couldn't save settings: {}", e));
-                }
-            }
-            if ui.button("Restore Defaults").clicked() {
-                self.options = PartyConfig {
-                    force_sdl: false,
-                    render_scale: 100,
-                    enable_kwin_script: true,
-                    gamescope_sdl_backend: true,
-                    proton_version: "".to_string(),
-                    vertical_two_player: false,
-                    pad_filter_type: PadFilterType::NoSteamInput,
-                };
-                self.input_devices = scan_input_devices(&self.options.pad_filter_type);
-            }
+            });
+            ui.separator();
         });
     }
 
@@ -744,6 +632,167 @@ impl PartyApp {
                     self.prepare_game_launch();
                 }
             });
+        }
+    }
+
+    fn display_settings_general(&mut self, ui: &mut Ui) {
+        let force_sdl2_check = ui.checkbox(&mut self.options.force_sdl, "Force Steam Runtime SDL2");
+
+        let enable_kwin_script_check = ui.checkbox(
+            &mut self.options.enable_kwin_script,
+            "Automatically resize/reposition instances",
+        );
+
+        let vertical_two_player_check = ui.checkbox(
+            &mut self.options.vertical_two_player,
+            "Vertical split for 2 players",
+        );
+
+        if force_sdl2_check.hovered() {
+            self.infotext = "Forces games to use the version of SDL2 included in the Steam Runtime. Only works on native Linux games, may fix problematic game controller support (incorrect mappings) in some games, may break others. If unsure, leave this unchecked.".to_string();
+        }
+
+        if enable_kwin_script_check.hovered() {
+            self.infotext = "Resizes/repositions instances to fit the screen using a KWin script. If unsure, leave this checked. If using a desktop environment or window manager other than KDE Plasma, uncheck this; note that you will need to manually resize and reposition the windows.".to_string();
+        }
+
+        if vertical_two_player_check.hovered() {
+            self.infotext =
+                "Splits two-player games vertically (side by side) instead of horizontally."
+                    .to_string();
+        }
+
+        ui.horizontal(|ui| {
+            let filter_label = ui.label("Controller filter");
+            let r1 = ui.radio_value(
+                &mut self.options.pad_filter_type,
+                PadFilterType::All,
+                "All controllers",
+            );
+            let r2 = ui.radio_value(
+                &mut self.options.pad_filter_type,
+                PadFilterType::NoSteamInput,
+                "No Steam Input",
+            );
+            let r3 = ui.radio_value(
+                &mut self.options.pad_filter_type,
+                PadFilterType::OnlySteamInput,
+                "Only Steam Input",
+            );
+
+            if filter_label.hovered() || r1.hovered() || r2.hovered() || r3.hovered() {
+                self.infotext = "Select which controllers to filter out. If unsure, set this to \"No Steam Input\". If you use Steam Input to remap controllers, you may want to select \"Only Steam Input\", but be warned that this option is experimental and is known to break certain Proton games.".to_string();
+            }
+
+            if r1.clicked() || r2.clicked() || r3.clicked() {
+                self.input_devices = scan_input_devices(&self.options.pad_filter_type);
+            }
+        });
+
+        ui.horizontal(|ui| {
+        let proton_ver_label = ui.label("Proton version");
+        let proton_ver_editbox = ui.add(
+            egui::TextEdit::singleline(&mut self.options.proton_version)
+                .hint_text("GE-Proton"),
+        );
+        if proton_ver_label.hovered() || proton_ver_editbox.hovered() {
+            self.infotext = "Specify a Proton version. This can be a path, e.g. \"/path/to/proton\" or just a name, e.g. \"GE-Proton\" for the latest version of Proton-GE. If left blank, this will default to \"GE-Proton\". If unsure, leave this blank.".to_string();
+        }
+        });
+
+        ui.separator();
+        ui.horizontal(|ui| {
+            ui.label("Update/Redownload Dependencies");
+            if ui.button("Goldberg Steam Emu").clicked() {
+                self.spawn_task("Updating Goldberg Steam Emu...", || {
+                    if let Err(err) = update_goldberg_emu() {
+                        msg("Error", &format!("Couldn't update: {}", err));
+                    }
+                });
+            }
+            if ui.button("UMU Launcher").clicked() {
+                self.spawn_task("Updating UMU Launcher...", || {
+                    if let Err(err) = update_umu_launcher() {
+                        msg("Error", &format!("Couldn't update: {}", err));
+                    }
+                });
+            }
+        });
+
+        ui.horizontal(|ui| {
+        if ui.button("Erase Proton Prefix").clicked() {
+            if yesno("Erase Prefix?", "This will erase the Wine prefix used by PartyDeck. This shouldn't erase profile/game-specific data, but exercise caution. Are you sure?") && PATH_PARTY.join("gamesyms").exists() {
+                if let Err(err) = std::fs::remove_dir_all(PATH_PARTY.join("pfx")) {
+                    msg("Error", &format!("Couldn't erase pfx data: {}", err));
+                }
+                else if let Err(err) = std::fs::create_dir_all(PATH_PARTY.join("pfx")) {
+                    msg("Error", &format!("Couldn't re-create pfx directory: {}", err));
+                }
+                else {
+                    msg("Data Erased", "Proton prefix data successfully erased.");
+                }
+            }
+        }
+
+        if ui.button("Erase Symlink Data").clicked() {
+            if yesno("Erase Symlink Data?", "This will erase all game symlink data. This shouldn't erase profile/game-specific data, but exercise caution. Are you sure?") && PATH_PARTY.join("gamesyms").exists() {
+                if let Err(err) = std::fs::remove_dir_all(PATH_PARTY.join("gamesyms")) {
+                    msg("Error", &format!("Couldn't erase symlink data: {}", err));
+                }
+                else if let Err(err) = std::fs::create_dir_all(PATH_PARTY.join("gamesyms")) {
+                    msg("Error", &format!("Couldn't re-create symlink directory: {}", err));
+                }
+                else {
+                    msg("Data Erased", "Game symlink data successfully erased.");
+                }
+            }
+        }
+        });
+
+        ui.horizontal(|ui| {
+            if ui.button("Open PartyDeck Data Folder").clicked() {
+                if let Err(_) = std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(format!("xdg-open {}/", PATH_PARTY.display()))
+                    .status()
+                {
+                    msg("Error", "Couldn't open PartyDeck Data Folder!");
+                }
+            }
+            if ui.button("Edit game paths").clicked() {
+                if let Err(_) = std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(format!("xdg-open {}/paths.json", PATH_PARTY.display(),))
+                    .status()
+                {
+                    msg("Error", "Couldn't open paths.json!");
+                }
+            }
+        });
+    }
+
+    fn display_settings_gamescope(&mut self, ui: &mut Ui) {
+        let render_scale_slider = ui.add(
+            egui::Slider::new(&mut self.options.render_scale, 35..=200)
+                .text("Instance resolution scale"),
+        );
+        let gamescope_sdl_backend_check = ui.checkbox(
+            &mut self.options.gamescope_sdl_backend,
+            "Use SDL backend for Gamescope",
+        );
+        let kbm_support_check = ui.checkbox(
+            &mut self.options.kbm_support,
+            "Enable keyboard and mouse support through custom Gamescope",
+        );
+
+        if render_scale_slider.hovered() {
+            self.infotext = "PartyDeck divides each instance by a base resolution. 100% render scale = your monitor's native resolution. Lower this value to increase performance, but may cause graphical issues or even break some games. If you're using a small screen like the Steam Deck's handheld screen, increase this to 150% or higher.".to_string();
+        }
+        if gamescope_sdl_backend_check.hovered() {
+            self.infotext = "Runs gamescope sessions using the SDL backend. If unsure, leave this checked. If gamescope sessions only show a black screen or give an error (especially on Nvidia + Wayland), try disabling this.".to_string();
+        }
+        if kbm_support_check.hovered() {
+            self.infotext = "Runs a custom Gamescope build with support for holding keyboards and mice. If you want to use your own Gamescope installation, uncheck this.".to_string();
         }
     }
 }
