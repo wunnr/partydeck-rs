@@ -197,6 +197,17 @@ impl PartyApp {
                 Some(_) => "Cancel",
             };
             ui.label(remove_text);
+
+            ui.label("      ");
+
+            if self.instances.len() > 0 && self.instance_add_dev == None {
+                ui.add(
+                    egui::Image::new(egui::include_image!("../../res/BTN_NORTH.png"))
+                        .max_height(12.0),
+                );
+                ui.label("[A]");
+                ui.label("Add Device");
+            }
         });
 
         ui.separator();
