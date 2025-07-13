@@ -49,7 +49,7 @@ Once in the main menu, click the + button to add a handler. Create profiles if y
 ## Building
 
 To build PartyDeck, You'll need a Rust toolchain installed with the 2024 Edition. For the mouse/keyboard gamescope build, you'll need ninja and meson installed.
-Clone the repo with submodules by running `git clone --recurse-submodules https://github.com/yourusername/partydeck-rs.git`. Navigate to the gamescope submodule at `deps/gamescope` and run these commands to build the mouse/keyboard gamescope:
+Clone the repo with submodules by running `git clone --recurse-submodules https://github.com/wunnr/partydeck-rs.git`. Navigate to the gamescope submodule at `deps/gamescope` and run these commands to build the mouse/keyboard gamescope:
 
 ```
 git submodule update --init
