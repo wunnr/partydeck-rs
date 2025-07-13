@@ -86,6 +86,7 @@ function gamescopeSplitscreen() {
       height: Ysize[i],
     };
   }
+  gamescopeAboveBelow();
 }
 
 workspace.windowAdded.connect(gamescopeSplitscreen);
