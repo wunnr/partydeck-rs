@@ -1,3 +1,6 @@
+use std::thread::sleep;
+use std::time::Duration;
+
 use super::config::*;
 use crate::game::*;
 use crate::input::*;
@@ -73,7 +76,7 @@ impl Default for PartyApp {
 
 impl eframe::App for PartyApp {
     fn raw_input_hook(&mut self, _ctx: &egui::Context, raw_input: &mut egui::RawInput) {
-        if !raw_input.focused {
+        if !raw_input.focused || self.task.is_some() {
             return;
         }
         match self.cur_page {
@@ -369,12 +372,16 @@ impl PartyApp {
         let _ = save_cfg(&cfg);
 
         self.cur_page = MenuPage::Home;
-        self.spawn_task("Launching...", move || {
-            if let Err(err) = launch_game(&game, &dev_infos, &instances, &cfg) {
-                println!("{}", err);
-                msg("Launch Error", &format!("{err}"));
-            }
-        });
+        self.spawn_task(
+            "Launching...\n\nDon't press any buttons or move any analog sticks or mice.",
+            move || {
+                sleep(std::time::Duration::from_secs(2));
+                if let Err(err) = launch_game(&game, &dev_infos, &instances, &cfg) {
+                    println!("{}", err);
+                    msg("Launch Error", &format!("{err}"));
+                }
+            },
+        );
     }
 }
 
