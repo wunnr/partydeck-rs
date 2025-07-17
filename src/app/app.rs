@@ -342,6 +342,16 @@ impl PartyApp {
         }
     }
 
+    pub fn add_dummy_device(&mut self) {
+        self.input_devices.push(InputDevice {
+            path: "dummy".to_string(),
+            dev: None,
+            enabled: true,
+            device_type: DeviceType::Gamepad,
+            has_button_held: false,
+        });
+    }
+
     pub fn prepare_game_launch(&mut self) {
         let game = cur_game!(self).to_owned();
         let mut instances = self.instances.clone();

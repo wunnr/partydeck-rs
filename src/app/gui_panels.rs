@@ -137,6 +137,10 @@ impl PartyApp {
 
             ui.label(dev_text);
         }
+
+        if ui.button("➕ Dummy Device").clicked() {
+            self.add_dummy_device();
+        }
     }
 
     pub fn panel_left_game_list(&mut self, ui: &mut Ui) {

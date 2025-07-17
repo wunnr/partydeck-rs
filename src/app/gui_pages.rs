@@ -19,6 +19,7 @@ impl PartyApp {
     pub fn display_page_main(&mut self, ui: &mut Ui) {
         ui.heading("Welcome to PartyDeck");
         ui.separator();
+
         ui.label("Press SELECT/BACK or Tab to unlock gamepad navigation.");
         ui.label("PartyDeck is in the very early stages of development; as such, you will likely encounter bugs, issues, and strange design decisions.");
         ui.label("For debugging purposes, it's recommended to read terminal output (stdout) for further information on errors.");
@@ -211,6 +212,14 @@ impl PartyApp {
         });
 
         ui.separator();
+
+        if ui.button("➕ Add Player").clicked() {
+            self.instances.push(Instance {
+                devices: Vec::new(),
+                profname: String::new(),
+                profselection: 0,
+            });
+        }
 
         let mut devices_to_remove = Vec::new();
         for (i, instance) in &mut self.instances.iter_mut().enumerate() {

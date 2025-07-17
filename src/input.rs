@@ -47,14 +47,17 @@ pub struct DeviceInfo {
 
 pub struct InputDevice {
     path: String,
-    dev: Device,
+    dev: Option<Device>,
     enabled: bool,
     device_type: DeviceType,
     has_button_held: bool,
 }
 impl InputDevice {
     pub fn name(&self) -> &str {
-        self.dev.name().unwrap_or_else(|| "")
+        match &self.dev {
+            Some(dev) => dev.name().unwrap_or(""),
+            None => "Dummy Device",
+        }
     }
     pub fn emoji(&self) -> &str {
         match self.device_type() {
@@ -65,19 +68,22 @@ impl InputDevice {
         }
     }
     pub fn fancyname(&self) -> &str {
-        match self.dev.input_id().vendor() {
-            0x045e => "Xbox Controller",
-            0x054c => "PS Controller",
-            0x057e => "NT Pro Controller",
-            0x28de => "Steam Input",
-            _ => self.name(),
+        match &self.dev {
+            Some(dev) => match dev.input_id().vendor() {
+                0x045e => "Xbox Controller",
+                0x054c => "PS Controller",
+                0x057e => "NT Pro Controller",
+                0x28de => "Steam Input",
+                _ => self.name(),
+            },
+            None => self.name(),
         }
     }
     pub fn path(&self) -> &str {
         &self.path
     }
     pub fn vendor(&self) -> u16 {
-        self.dev.input_id().vendor()
+        self.dev.as_ref().map(|d| d.input_id().vendor()).unwrap_or(0)
     }
     pub fn enabled(&self) -> bool {
         self.enabled
@@ -90,9 +96,10 @@ impl InputDevice {
     }
     pub fn poll(&mut self) -> Option<PadButton> {
         let mut btn: Option<PadButton> = None;
-        if let Ok(events) = self.dev.fetch_events() {
-            for event in events {
-                let summary = event.destructure();
+        if let Some(dev) = &mut self.dev {
+            if let Ok(events) = dev.fetch_events() {
+                for event in events {
+                    let summary = event.destructure();
 
                 match summary {
                     EventSummary::Key(_, _, 1) => {
@@ -132,6 +139,7 @@ impl InputDevice {
                     EventSummary::Key(_, KeyCode::BTN_RIGHT, 1) => Some(PadButton::RightClick),
                     _ => btn,
                 };
+                }
             }
         }
         btn
@@ -176,7 +184,7 @@ pub fn scan_input_devices(filter: &PadFilterType) -> Vec<InputDevice> {
             }
             pads.push(InputDevice {
                 path: dev.0.to_str().unwrap().to_string(),
-                dev: dev.1,
+                dev: Some(dev.1),
                 enabled,
                 device_type,
                 has_button_held: false,
