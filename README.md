@@ -59,7 +59,8 @@ build/gamescope -- <game>
 ```
 
 If you're on a Steam Deck, run `./scripts/install_steamdeck_deps.sh` to
-install all required packages before running the above commands.
+install all required packages, including `libffi` and `libarchive`, before
+running the above commands.
 
 Then, in the main partydeck folder, run `build.sh`. This will build the executable, and place it in the `build` folder, along with the relevant dependencies and resources.
 
