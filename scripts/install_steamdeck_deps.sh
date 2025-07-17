@@ -18,7 +18,7 @@ sudo pacman -Syu --needed --noconfirm \
     pipewire sdl2 vulkan-headers libdrm libx11 libxmu \
     libxcomposite libxrender libxres libxtst libxkbcommon \
     libinput wayland wayland-protocols hwdata \
-    libxdamage libdecor wlroots0.18 \
+    libxdamage libdecor wlroots \
     xorg-xwayland benchmark \
     libavif libheif aom rav1e luajit
 
