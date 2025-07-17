@@ -58,6 +58,14 @@ ninja -C build/
 build/gamescope -- <game>
 ```
 
+ninja and meson must be able to find development headers for Wayland, Vulkan and
+various X11 libraries. On Debian based distros you can install them with:
+`sudo apt install libvulkan-dev libwayland-dev libx11-xcb-dev libxcursor-dev \
+libxres-dev libxtst-dev libxxf86vm-dev libxi-dev libxmu-dev`.
+If your distribution ships an older Wayland (<1.23), append
+`--force-fallback-for=wayland,wayland-protocols` to the Meson command so it will
+use the bundled copy.
+
 Then, in the main partydeck folder, run `build.sh`. This will build the executable, and place it in the `build` folder, along with the relevant dependencies and resources.
 
 
