@@ -6,12 +6,18 @@ build_gamescope() {
     local enable_openvr=$1
     if [ ! -f deps/gamescope/build/src/gamescope ]; then
         echo "Building gamescope submodule..."
-        (cd deps/gamescope && meson setup build/ -Denable_openvr_support=$enable_openvr && ninja -C build/)
+        git submodule update --init --recursive
+        (
+            cd deps/gamescope && \
+            meson setup build/ -Denable_openvr_support="$enable_openvr" && \
+            ninja -C build/
+        )
+
     fi
 }
 
 install_steamdeck_deps() {
-    if [ -x scripts/install_steamdeck_deps.sh ]; then
+    if command -v pacman >/dev/null && [ -x scripts/install_steamdeck_deps.sh ]; then
         echo "Installing Steam Deck dependencies..."
         scripts/install_steamdeck_deps.sh
     fi
@@ -24,6 +30,7 @@ read -p "Choice [1/2]: " choice
 
 case "$choice" in
     2)
+        install_steamdeck_deps
         build_gamescope true
         ;;
     *)

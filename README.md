@@ -55,11 +55,12 @@ repository including submodules:
 git clone --recurse-submodules https://github.com/wunnr/partydeck-rs.git
 ```
 
-Run `./build.sh` to compile the project. The script asks whether to build a
-Steam Deck friendly version or the regular one with keyboard and mouse support
-via Gamescope. If you choose the Steam Deck option it automatically installs
-packages like `libffi`, `libarchive`, and Vulkan/Wayland headers first. The
-compiled binaries and resources are placed in the `build` folder.
+
+Run `./build.sh` to compile the project. The script will clone any missing
+submodules, offer to build either a Steam Deck friendly build or the regular
+variant with keyboard and mouse support through Gamescope, and automatically
+install all required packages on SteamOS before compiling. The resulting
+binaries and resources are placed in the `build` folder.
 
 
 ## How it Works
