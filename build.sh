@@ -12,6 +12,7 @@ build_gamescope() {
             meson setup build/ -Denable_openvr_support="$enable_openvr" && \
             ninja -C build/
         )
+
     fi
 }
 
