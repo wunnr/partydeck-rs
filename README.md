@@ -54,7 +54,6 @@ repository including submodules:
 ```
 git clone --recurse-submodules https://github.com/wunnr/partydeck-rs.git
 ```
-
 On Steam Deck simply run `./build.sh`.
 The script automatically installs the required packages, builds the bundled
 Gamescope fork and then places the resulting binaries under `build`. During

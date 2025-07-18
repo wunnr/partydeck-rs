@@ -54,6 +54,7 @@ else
     build_gamescope false
 fi
 
+
 cargo build --release
 
 rm -rf build/partydeck-rs
