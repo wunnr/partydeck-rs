@@ -46,11 +46,11 @@ pub struct DeviceInfo {
 }
 
 pub struct InputDevice {
-    path: String,
-    dev: Option<Device>,
-    enabled: bool,
-    device_type: DeviceType,
-    has_button_held: bool,
+    pub path: String,
+    pub dev: Option<Device>,
+    pub enabled: bool,
+    pub device_type: DeviceType,
+    pub has_button_held: bool,
 }
 impl InputDevice {
     pub fn name(&self) -> &str {
