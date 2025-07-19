@@ -11,6 +11,29 @@ use crate::paths::*;
 use crate::util::*;
 
 fn main() -> eframe::Result {
+    if std::env::args().any(|arg| arg == "--kwin") {
+        let args: Vec<String> = std::env::args().filter(|arg| arg != "--kwin").collect();
+        let (w, h) = get_screen_resolution();
+        let mut cmd = std::process::Command::new("kwin_wayland");
+        cmd.arg("--xwayland");
+        cmd.arg("--width");
+        cmd.arg(w.to_string());
+        cmd.arg("--height");
+        cmd.arg(h.to_string());
+        cmd.arg("--exit-with-session");
+        cmd.arg(args.join(" "));
+
+        println!("[PARTYDECK] Launching kwin session: {:?}", cmd);
+
+        match cmd.spawn() {
+            Ok(_) => std::process::exit(0),
+            Err(e) => {
+                eprintln!("Failed to start kwin_wayland: {}", e);
+                std::process::exit(1);
+            }
+        }
+    }
+
     std::fs::create_dir_all(PATH_PARTY.join("gamesyms"))
         .expect("Failed to create gamesyms directory");
     std::fs::create_dir_all(PATH_PARTY.join("handlers"))
