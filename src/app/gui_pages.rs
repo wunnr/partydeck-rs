@@ -63,6 +63,8 @@ impl PartyApp {
                         proton_version: "".to_string(),
                         vertical_two_player: false,
                         pad_filter_type: PadFilterType::NoSteamInput,
+                        enable_cpu_affinity: false,
+                        cpu_affinity_pattern: "0,1,8,9;2,3,10,11;4,5,12,13;6,7,14,15".to_string(),
                     };
                     self.input_devices = scan_input_devices(&self.options.pad_filter_type);
                 }
@@ -440,5 +442,22 @@ impl PartyApp {
         if kbm_support_check.hovered() {
             self.infotext = "Runs a custom Gamescope build with support for holding keyboards and mice. If you want to use your own Gamescope installation, uncheck this.".to_string();
         }
+
+        ui.separator();
+        let affinity_check =
+            ui.checkbox(&mut self.options.enable_cpu_affinity, "Enable CPU Affinity");
+        if affinity_check.hovered() {
+            self.infotext = "Set CPU affinity for each game instance to improve performance and reduce stuttering. Recommended for CPUs with 8 or more cores.".to_string();
+        }
+        ui.horizontal(|ui| {
+            let affinity_pattern_label = ui.label("Affinity Pattern:");
+            let affinity_pattern_editbox = ui.add(
+                egui::TextEdit::singleline(&mut self.options.cpu_affinity_pattern)
+                    .hint_text("0,1,8,9;2,3,10,11;..."),
+            );
+            if affinity_pattern_label.hovered() || affinity_pattern_editbox.hovered() {
+                self.infotext = "A semicolon-separated list of CPU cores for each instance (e.g., 0,1,8,9;2,3,10,11;...).".to_string();
+            }
+        });
     }
 }

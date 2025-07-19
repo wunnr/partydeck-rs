@@ -24,6 +24,10 @@ pub struct PartyConfig {
     #[serde(default)]
     pub vertical_two_player: bool,
     pub pad_filter_type: PadFilterType,
+    #[serde(default)]
+    pub enable_cpu_affinity: bool,
+    #[serde(default)]
+    pub cpu_affinity_pattern: String,
 }
 
 pub fn load_cfg() -> PartyConfig {
@@ -45,6 +49,8 @@ pub fn load_cfg() -> PartyConfig {
         proton_version: "".to_string(),
         vertical_two_player: false,
         pad_filter_type: PadFilterType::NoSteamInput,
+        enable_cpu_affinity: false,
+        cpu_affinity_pattern: "0,1,8,9;2,3,10,11;4,5,12,13;6,7,14,15".to_string(),
     }
 }
 
