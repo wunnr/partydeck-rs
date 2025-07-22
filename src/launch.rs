@@ -4,7 +4,7 @@ use crate::app::PartyConfig;
 use crate::game::Game;
 use crate::handler::*;
 use crate::input::*;
-use crate::launch::Game::{Executable, HandlerRef};
+use crate::launch::Game::{ExecRef, HandlerRef};
 use crate::paths::*;
 use crate::util::*;
 
@@ -65,7 +65,7 @@ pub fn launch_cmd(
     let mut gsc_lowres_warn = true;
 
     let gamedir = match game {
-        Executable { .. } => "",
+        ExecRef(_) => "",
         HandlerRef(h) => match h.symlink_dir {
             true => &format!("{party}/gamesyms/{}", h.uid),
             false => &get_rootpath_handler(&h)?,
@@ -73,7 +73,7 @@ pub fn launch_cmd(
     };
 
     let win = match game {
-        Executable { path, .. } => path.extension().unwrap_or_default() == "exe",
+        ExecRef(e) => e.path().extension().unwrap_or_default() == "exe",
         HandlerRef(h) => h.win,
     };
 
@@ -135,7 +135,7 @@ pub fn launch_cmd(
     };
 
     let exec = match game {
-        Executable { path, .. } => &path.to_string_lossy(),
+        ExecRef(e) => &e.path().to_string_lossy(),
         HandlerRef(h) => h.exec.as_str(),
     };
 
@@ -165,7 +165,7 @@ pub fn launch_cmd(
     for (i, instance) in instances.iter().enumerate() {
         let path_prof = &format!("{party}/profiles/{}", instance.profname.as_str());
         let path_save = match game {
-            Executable { .. } => "",
+            ExecRef(_) => "",
             HandlerRef(h) => &format!("{path_prof}/saves/{}", h.uid.as_str()),
         };
 

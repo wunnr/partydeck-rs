@@ -98,8 +98,8 @@ impl PartyApp {
                 match self.cur_page {
                     MenuPage::Game => {
                         match cur_game!(self){
-                            Game::Executable { path, .. } =>
-                                self.infotext = format!("{}", path.display()),
+                            Game::ExecRef(e) =>
+                                self.infotext = format!("{}", e.path().display()),
                             Game::HandlerRef(h) =>
                                 self.infotext = h.info.to_owned(),
                         }

@@ -9,8 +9,37 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 
+#[derive(Clone)]
+pub struct Executable {
+    path: PathBuf,
+    filename: String,
+    pub args: String,
+}
+
+impl Executable {
+    pub fn new(path: PathBuf, args: String) -> Self {
+        let filename = path
+            .clone()
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("")
+            .to_string();
+        Executable {
+            path,
+            filename,
+            args,
+        }
+    }
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+    pub fn filename(&self) -> &str {
+        &self.filename
+    }
+}
+
 pub enum Game {
-    Executable { path: PathBuf, filename: String },
+    ExecRef(Executable),
     HandlerRef(Handler),
 }
 
@@ -19,10 +48,7 @@ impl ToOwned for Game {
 
     fn to_owned(&self) -> Self::Owned {
         match self {
-            Game::Executable { path, filename } => Game::Executable {
-                path: path.clone(),
-                filename: filename.clone(),
-            },
+            Game::ExecRef(e) => Game::ExecRef(e.clone()),
             Game::HandlerRef(handler) => Game::HandlerRef(handler.clone()),
         }
     }
@@ -30,13 +56,13 @@ impl ToOwned for Game {
 impl Game {
     pub fn name(&self) -> &str {
         match self {
-            Game::Executable { filename, .. } => filename,
+            Game::ExecRef(e) => e.filename(),
             Game::HandlerRef(handler) => handler.display(),
         }
     }
     pub fn icon(&self) -> ImageSource {
         match self {
-            Game::Executable { .. } => egui::include_image!("../res/executable_icon.png"),
+            Game::ExecRef(_) => egui::include_image!("../res/executable_icon.png"),
             Game::HandlerRef(handler) => {
                 format!("file://{}/icon.png", handler.path_handler.display()).into()
             }
@@ -60,12 +86,8 @@ pub fn scan_all_games() -> Vec<Game> {
             for executable in executables {
                 if let Some(path_str) = executable.as_str() {
                     let path = PathBuf::from(path_str);
-                    let filename = path
-                        .file_name()
-                        .and_then(|name| name.to_str())
-                        .unwrap_or("")
-                        .to_string();
-                    games.push(Game::Executable { path, filename });
+
+                    games.push(Game::ExecRef(Executable::new(path, String::new())));
                 }
             }
         }
@@ -141,7 +163,7 @@ pub fn add_game() -> Result<(), Box<dyn Error>> {
 
 pub fn remove_game(game: &Game) -> Result<(), Box<dyn Error>> {
     match game {
-        Game::Executable { path, .. } => {
+        Game::ExecRef(e) => {
             // Load current paths.json
             let mut json = if let Ok(file) = File::open(PATH_PARTY.join("paths.json")) {
                 serde_json::from_reader(BufReader::new(file))
@@ -152,7 +174,7 @@ pub fn remove_game(game: &Game) -> Result<(), Box<dyn Error>> {
 
             // Remove the file path from the executables array
             if let Some(executables) = json[".executables"].as_array_mut() {
-                let file_path = path.to_string_lossy().to_string();
+                let file_path = e.path.to_string_lossy().to_string();
                 executables.retain(|p| p.as_str() != Some(&file_path));
             }
 
