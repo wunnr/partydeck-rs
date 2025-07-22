@@ -231,10 +231,8 @@ pub fn launch_cmd(
 
         // Bind player profile directories to the game's directories
         let mut binds = String::new();
-        let mut args = String::new();
 
         // Mask out any gamepads that aren't this player's
-        // Disable for now
         for (d, dev) in input_devices.iter().enumerate() {
             if !dev.enabled
                 || (!instance.devices.contains(&d) && dev.device_type == DeviceType::Gamepad)
@@ -278,8 +276,10 @@ pub fn launch_cmd(
                     "--bind \"{path_save}/{subdir}\" \"{gamedir}/{subdir}\" "
                 ));
             }
+        }
 
-            args = h
+        let args = match game {
+            HandlerRef(h) => h
                 .args
                 .iter()
                 .map(|arg| match arg.as_str() {
@@ -290,8 +290,9 @@ pub fn launch_cmd(
                     "$WIDTHXHEIGHT" => format!(" \"{gsc_width}x{gsc_height}\""),
                     _ => format!(" {arg}"),
                 })
-                .collect::<String>();
-        }
+                .collect::<String>(),
+            ExecRef(e) => e.args.clone().sanitize_path(),
+        };
 
         cmd.push_str(&format!("{binds} {runtime} \"{gamedir}/{exec}\"{args} "));
 

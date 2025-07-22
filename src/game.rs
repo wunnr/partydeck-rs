@@ -1,5 +1,6 @@
 use crate::handler::{Handler, install_handler_from_file, scan_handlers};
 use crate::paths::*;
+use crate::util::SanitizePath;
 
 use eframe::egui::{self, ImageSource};
 use rfd::FileDialog;
@@ -23,7 +24,8 @@ impl Executable {
             .file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("")
-            .to_string();
+            .to_string()
+            .sanitize_path();
         Executable {
             path,
             filename,
@@ -35,6 +37,9 @@ impl Executable {
     }
     pub fn filename(&self) -> &str {
         &self.filename
+    }
+    pub fn args(&self) -> &str {
+        &self.args
     }
 }
 
