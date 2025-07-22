@@ -116,7 +116,7 @@ pub fn add_game() -> Result<(), Box<dyn Error>> {
 
     // Check if the file has a valid extension (pdh, exe, or no extension)
     let extension = file.as_ref().unwrap().extension().unwrap_or_default();
-    if !["pdh", "exe", ""].contains(&extension.to_str().unwrap_or("")) {
+    if !["pdh", "exe", "sh", ""].contains(&extension.to_str().unwrap_or("")) {
         return Err("Invalid file type!".into());
     }
 
