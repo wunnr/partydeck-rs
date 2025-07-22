@@ -61,7 +61,6 @@ pub fn launch_cmd(
     let localshare = PATH_LOCAL_SHARE.display();
     let party = PATH_PARTY.display();
     let steam = PATH_STEAM.display();
-    let res = PATH_RES.display();
 
     let mut gsc_lowres_warn = true;
 
@@ -118,7 +117,8 @@ pub fn launch_cmd(
     cmd.push_str("; ");
 
     let runtime = match win {
-        true => &format!("{res}/umu-run"),
+        // UMU CHANGE
+        true => &format!("{}", BIN_UMU_RUN.to_string_lossy()),
         false => {
             if let HandlerRef(h) = game {
                 match h.runtime.as_str() {
@@ -186,7 +186,7 @@ pub fn launch_cmd(
         };
 
         let gamescope = match cfg.kbm_support {
-            true => &format!("{res}/gamescope"),
+            true => &format!("{}", BIN_GSC_KBM.to_string_lossy()),
             false => "gamescope",
         };
 
