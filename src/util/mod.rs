@@ -17,4 +17,4 @@ pub use sys::{
 };
 
 // Re-export functions from updates
-pub use updates::{check_for_partydeck_update, update_goldberg_emu, update_umu_launcher};
+pub use updates::check_for_partydeck_update;

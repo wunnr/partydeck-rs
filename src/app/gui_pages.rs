@@ -347,23 +347,6 @@ impl PartyApp {
         });
 
         ui.separator();
-        ui.horizontal(|ui| {
-            ui.label("Update/Redownload Dependencies");
-            if ui.button("Goldberg Steam Emu").clicked() {
-                self.spawn_task("Updating Goldberg Steam Emu...", || {
-                    if let Err(err) = update_goldberg_emu() {
-                        msg("Error", &format!("Couldn't update: {}", err));
-                    }
-                });
-            }
-            if ui.button("UMU Launcher").clicked() {
-                self.spawn_task("Updating UMU Launcher...", || {
-                    if let Err(err) = update_umu_launcher() {
-                        msg("Error", &format!("Couldn't update: {}", err));
-                    }
-                });
-            }
-        });
 
         ui.horizontal(|ui| {
         if ui.button("Erase Proton Prefix").clicked() {

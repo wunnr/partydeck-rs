@@ -4,7 +4,6 @@ use super::config::*;
 use crate::game::*;
 use crate::input::*;
 use crate::launch::launch_game;
-use crate::paths::*;
 use crate::util::*;
 
 use eframe::egui::{self, Key};
@@ -85,9 +84,6 @@ impl eframe::App for PartyApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // TODO: We shouldn't run this every frame
-        self.check_dependencies();
-
         egui::TopBottomPanel::top("menu_nav_panel").show(ctx, |ui| {
             if self.task.is_some() {
                 ui.disable();
@@ -181,33 +177,6 @@ impl PartyApp {
         self.loading_msg = Some(msg.to_string());
         self.loading_since = Some(std::time::Instant::now());
         self.task = Some(std::thread::spawn(f));
-    }
-
-    fn check_dependencies(&mut self) {
-        if self.task.is_some() {
-            return;
-        }
-
-        if !PATH_RES.join("umu-run").exists() {
-            self.spawn_task("Downloading UMU Launcher...", || {
-                if let Err(e) = update_umu_launcher() {
-                    println!("Failed to download UMU Launcher: {}", e);
-                    msg("Error", &format!("Failed to download UMU Launcher: {}", e));
-                    let _ = std::fs::remove_file(PATH_RES.join("umu-run"));
-                }
-            });
-        } else if !PATH_RES.join("goldberg_linux").exists()
-            || !PATH_RES.join("goldberg_win").exists()
-        {
-            self.spawn_task("Downloading Goldberg Steam Emu...", || {
-                if let Err(e) = update_goldberg_emu() {
-                    println!("Failed to download Goldberg: {}", e);
-                    msg("Error", &format!("Failed to download Goldberg: {}", e));
-                    let _ = std::fs::remove_dir_all(PATH_RES.join("goldberg_linux"));
-                    let _ = std::fs::remove_dir_all(PATH_RES.join("goldberg_win"));
-                }
-            });
-        }
     }
 
     fn handle_gamepad_gui(&mut self, raw_input: &mut egui::RawInput) {
