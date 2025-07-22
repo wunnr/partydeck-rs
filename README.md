@@ -34,7 +34,7 @@ Download the latest release [here](https://github.com/wunnr/partydeck-rs/release
 
 SteamOS includes all of PartyDeck's dependencies, but you will need to be on SteamOS 3.7.0 or above for the splitscreen script to work.
 
-If you're in desktop mode, simply run `partydeck-rs`. To use PartyDeck in Gaming Mode, add the script `PartyDeckKWinLaunch.sh` as a non-Steam game by right-clicking that file and selecting "Add to Steam". This is a simple script that launches a KWin session from within Gaming Mode, then runs PartyDeck inside of that session. Then, go into the properties of the non-Steam game and disable Steam Input.
+If you're in desktop mode, simply run `partydeck-rs`. To use PartyDeck in Gaming Mode, add `partydeck-rs` as a non-Steam game by right-clicking that file and selecting "Add to Steam", then go into the properties of the non-Steam game, add `--kwin --fullscreen` to the launch options, and disable Steam Input.
 
 ### Desktop Linux
 
