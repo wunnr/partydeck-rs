@@ -313,10 +313,7 @@ pub fn create_symlink_folder(h: &Handler) -> Result<(), Box<dyn Error>> {
 
     // Insert goldberg dll
     if !h.path_goldberg.is_empty() {
-        let dest = match h.path_goldberg.as_str() {
-            "." => path_sym.to_owned(),
-            _ => path_sym.join(&h.path_goldberg),
-        };
+        let dest = path_sym.join(&h.path_goldberg);
 
         let steam_settings = dest.join("steam_settings");
         if !steam_settings.exists() {
@@ -335,8 +332,8 @@ pub fn create_symlink_folder(h: &Handler) -> Result<(), Box<dyn Error>> {
         if !&h.coldclient {
             let mut src = PATH_RES.clone();
             src = match &h.win {
-                true => src.join("goldberg_win/release/regular"),
-                false => src.join("goldberg_linux/release/regular"),
+                true => src.join("goldberg/win"),
+                false => src.join("goldberg/linux"),
             };
             src = match &h.is32bit {
                 true => src.join("x32"),
@@ -345,10 +342,7 @@ pub fn create_symlink_folder(h: &Handler) -> Result<(), Box<dyn Error>> {
 
             copy_dir_recursive(&src, &dest, false, true)?;
 
-            let path_steamdll = match h.path_goldberg.as_str() {
-                "." => path_root.to_owned(),
-                _ => path_root.join(&h.path_goldberg),
-            };
+            let path_steamdll = path_root.join(&h.path_goldberg);
             let steamdll = match &h.win {
                 true => match &h.is32bit {
                     true => path_steamdll.join("steam_api.dll"),
@@ -358,12 +352,8 @@ pub fn create_symlink_folder(h: &Handler) -> Result<(), Box<dyn Error>> {
             };
 
             let gen_interfaces = match &h.is32bit {
-                true => PATH_RES.join(
-                    "goldberg_linux/release/tools/generate_interfaces/generate_interfaces_x32",
-                ),
-                false => PATH_RES.join(
-                    "goldberg_linux/release/tools/generate_interfaces/generate_interfaces_x64",
-                ),
+                true => PATH_RES.join("goldberg/generate_interfaces_x32"),
+                false => PATH_RES.join("goldberg/generate_interfaces_x64"),
             };
             let status = std::process::Command::new(gen_interfaces)
                 .arg(steamdll)
