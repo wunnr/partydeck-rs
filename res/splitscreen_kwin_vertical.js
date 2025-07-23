@@ -27,7 +27,10 @@ function getGamescopeClients() {
   var gamescopeClients = [];
 
   for (var i = 0; i < allClients.length; i++) {
-    if (allClients[i].resourceClass == "gamescope") {
+    if (
+      allClients[i].resourceClass == "gamescope" ||
+      allClients[i].resourceClass == "gamescope-kbm"
+    ) {
       gamescopeClients.push(allClients[i]);
     }
   }
@@ -37,7 +40,10 @@ function getGamescopeClients() {
 function gamescopeAboveBelow() {
   var gamescopeClients = getGamescopeClients();
   for (var i = 0; i < gamescopeClients.length; i++) {
-    if (workspace.activeWindow.resourceClass == "gamescope") {
+    if (
+      workspace.activeWindow.resourceClass == "gamescope" ||
+      workspace.activeWindow.resourceClass == "gamescope-kbm"
+    ) {
       gamescopeClients[i].keepAbove = true;
     } else {
       gamescopeClients[i].keepAbove = false;
