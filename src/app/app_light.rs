@@ -271,6 +271,11 @@ impl LightPartyApp {
             ui.selectable_value(&mut self.cur_page, MenuPage::Instances, "Play");
             ui.selectable_value(&mut self.cur_page, MenuPage::Settings, "Settings");
 
+            if ui.button("🎮 Rescan").clicked() {
+                self.instances.clear();
+                self.input_devices = scan_input_devices(&self.options.pad_filter_type);
+            }
+
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("❌ Quit").clicked() {
                     ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
