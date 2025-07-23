@@ -1,5 +1,5 @@
 [package]
-name = "partydeck-rs"
+name = "partydeck"
 version = "0.5.2"
 edition = "2024"
 
