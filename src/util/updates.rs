@@ -1,7 +1,7 @@
 pub fn check_for_partydeck_update() -> bool {
     // Try to get the latest release tag from GitHub
     if let Ok(client) = reqwest::blocking::Client::new()
-        .get("https://api.github.com/repos/wunnr/partydeck-rs/releases/latest")
+        .get("https://api.github.com/repos/wunnr/partydeck/releases/latest")
         .header("User-Agent", "partydeck")
         .send()
     {

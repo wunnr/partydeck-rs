@@ -277,12 +277,12 @@ impl LightPartyApp {
                 }
                 ui.hyperlink_to(
                     format!("PartyDeck v{}", env!("CARGO_PKG_VERSION")),
-                    "https://github.com/wunnr/partydeck-rs/releases",
+                    "https://github.com/wunnr/partydeck/releases",
                 );
                 ui.add(egui::Separator::default().vertical());
                 ui.hyperlink_to(
                     "Open Source Licenses",
-                    "https://github.com/wunnr/partydeck-rs/tree/main?tab=License-2-ov-file",
+                    "https://github.com/wunnr/partydeck/tree/main?tab=License-2-ov-file",
                 );
             });
         });

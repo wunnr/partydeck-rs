@@ -48,14 +48,11 @@ impl PartyApp {
                     true => format!("v{} (Update Available)", env!("CARGO_PKG_VERSION")),
                     false => format!("v{}", env!("CARGO_PKG_VERSION")),
                 };
-                ui.hyperlink_to(
-                    version_label,
-                    "https://github.com/wunnr/partydeck-rs/releases",
-                );
+                ui.hyperlink_to(version_label, "https://github.com/wunnr/partydeck/releases");
                 ui.add(egui::Separator::default().vertical());
                 ui.hyperlink_to(
                     "Open Source Licenses",
-                    "https://github.com/wunnr/partydeck-rs/tree/main?tab=License-2-ov-file",
+                    "https://github.com/wunnr/partydeck/tree/main?tab=License-2-ov-file",
                 );
             });
         });
