@@ -65,7 +65,13 @@ pub fn launch_cmd(
     let mut gsc_lowres_warn = true;
 
     let gamedir = match game {
-        ExecRef(_) => "",
+        ExecRef(e) => &format!(
+            "{}",
+            e.path()
+                .parent()
+                .ok_or_else(|| "Invalid path")?
+                .to_string_lossy()
+        ),
         HandlerRef(h) => match h.symlink_dir {
             true => &format!("{party}/gamesyms/{}", h.uid),
             false => &get_rootpath_handler(&h)?,
@@ -135,7 +141,7 @@ pub fn launch_cmd(
     };
 
     let exec = match game {
-        ExecRef(e) => &e.path().to_string_lossy(),
+        ExecRef(e) => &e.filename(),
         HandlerRef(h) => h.exec.as_str(),
     };
 
@@ -294,7 +300,7 @@ pub fn launch_cmd(
             ExecRef(e) => e.args.clone().sanitize_path(),
         };
 
-        cmd.push_str(&format!("{binds} {runtime} \"{gamedir}/{exec}\"{args} "));
+        cmd.push_str(&format!("{binds} {runtime} \"{gamedir}/{exec}\" {args} "));
 
         if i < instances.len() - 1 {
             // Proton games need a ~5 second buffer in-between launches
