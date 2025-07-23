@@ -48,30 +48,6 @@ fn main() -> eframe::Result {
         }
     }
 
-    std::fs::create_dir_all(PATH_PARTY.join("gamesyms"))
-        .expect("Failed to create gamesyms directory");
-    std::fs::create_dir_all(PATH_PARTY.join("handlers"))
-        .expect("Failed to create handlers directory");
-    std::fs::create_dir_all(PATH_PARTY.join("profiles"))
-        .expect("Failed to create profiles directory");
-
-    remove_guest_profiles().unwrap();
-
-    if PATH_PARTY.join("tmp").exists() {
-        std::fs::remove_dir_all(PATH_PARTY.join("tmp")).unwrap();
-    }
-
-    println!("\n[PARTYDECK] started\n");
-
-    let fullscreen = std::env::args().any(|arg| arg == "--fullscreen");
-
-    let (_, scrheight) = get_screen_resolution();
-
-    let scale = match fullscreen {
-        true => scrheight as f32 / 560.0,
-        false => 1.3,
-    };
-
     let mut exec = String::new();
     let mut execargs = String::new();
     if let Some(exec_index) = args.iter().position(|arg| arg == "--exec") {
@@ -91,6 +67,28 @@ fn main() -> eframe::Result {
         }
     }
 
+    let fullscreen = std::env::args().any(|arg| arg == "--fullscreen");
+
+    std::fs::create_dir_all(PATH_PARTY.join("gamesyms"))
+        .expect("Failed to create gamesyms directory");
+    std::fs::create_dir_all(PATH_PARTY.join("handlers"))
+        .expect("Failed to create handlers directory");
+    std::fs::create_dir_all(PATH_PARTY.join("profiles"))
+        .expect("Failed to create profiles directory");
+
+    remove_guest_profiles().unwrap();
+
+    if PATH_PARTY.join("tmp").exists() {
+        std::fs::remove_dir_all(PATH_PARTY.join("tmp")).unwrap();
+    }
+
+    let (_, scrheight) = get_screen_resolution();
+
+    let scale = match fullscreen {
+        true => scrheight as f32 / 560.0,
+        false => 1.3,
+    };
+
     let light = !exec.is_empty();
 
     let win_width = match light {
@@ -109,6 +107,8 @@ fn main() -> eframe::Result {
             ),
         ..Default::default()
     };
+
+    println!("\n[PARTYDECK] starting...\n");
 
     eframe::run_native(
         "PartyDeck",
